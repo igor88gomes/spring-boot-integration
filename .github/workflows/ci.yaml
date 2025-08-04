@@ -1,12 +1,12 @@
-# .github/workflows/ci.yml
+# .github/workflows/ci.yaml
 
-name: Java CI with Maven
+name: Java CI with Maven and Docker
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ main, test ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ main, test ]
 
 jobs:
   build:
@@ -22,6 +22,15 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
       - name: Build with Maven
         run: mvn clean install
 
@@ -36,4 +45,4 @@ jobs:
           path: target/site/jacoco
 
       - name: Build Docker image
-        run: docker build -t icc-demo-app .
+        run: docker build -t igorgomes/spring-boot-integration:latest .
