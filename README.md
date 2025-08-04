@@ -10,7 +10,7 @@ Ett professionellt och tekniskt genomarbetat demo-projekt som visar modern syste
 - JSON-strukturerad loggning med Logback + MDC
 - Enhetstester med JUnit + Mockito (94% täckning via JaCoCo)
 - Fullständig CI/CD-pipeline med GitHub Actions
-- Dockeriserad och klar att köra lokalt eller i molnbaserad miljö
+- Dockeriserad med Compose och körbar både lokalt och i CI/CD
 
 ## Arkitekturöversikt
 
@@ -35,8 +35,9 @@ flowchart LR
 | Logback + MDC         | Strukturerad loggning i JSON-format    |
 | GitHub Actions        | CI/CD-pipeline                         |
 | Docker + Compose      | Paketering och lokal drift             |
+| Postman               | Test av REST API:er                    |
 
-## API Endpoints (testade i Postman)
+## API Endpoints (testade i Postman och curl)
 
 ### Skicka ett meddelande
 
@@ -79,9 +80,9 @@ mvn clean verify
 target/site/jacoco/index.html
 ```
 
-**Täckning:** 94%
+**Täckning:** 94% (visas i `target/site/jacoco/index.html`)
 
-## Loggning
+## Loggning och testresultat
 
 Loggar genereras i JSON-format och sparas i:
 
@@ -113,7 +114,7 @@ mvn spring-boot:run
 
 Testa i webbläsaren eller med Postman:
 
-- http://localhost:8080/api/send?message=HejIntegration  
+- http://localhost:8080/api/send?message=HejIntegration
 - http://localhost:8080/api/all
 
 ## Docker: Bygg och kör med Compose
@@ -127,23 +128,28 @@ ActiveMQ-konsolen finns på: http://localhost:8161 (användare: admin / lösenor
 
 ## Continuous Integration (CI)
 
-Projektet använder **GitHub Actions** för att automatiskt:
+Projektet använder **GitHub Actions** för att automatiskt bygga, testa och containerisera applikationen. Pipelines körs automatiskt vid `push` eller `pull request` som riktas mot `main` eller `test` branchen.
 
-- Bygga projektet
-- Köra tester
-- Generera kodtäckning (JaCoCo)
-- Bygga Docker-image
+Workflowen omfattar följande steg:
+
+- Checkar ut källkoden
+- Sätter upp JDK 17
+- Cacherar Maven-beroenden
+- Bygger projektet med Maven
+- Kör tester och genererar kodtäckningsrapport (JaCoCo)
+- Laddar upp JaCoCo-rapporten som artefakt
+- Bygger Docker-image av applikationen
 
 ```yaml
 # .github/workflows/ci.yaml
 
-name: Java CI with Maven
+name: Java CI with Maven and Docker
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ main, test ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ main, test ]
 
 jobs:
   build:
@@ -159,6 +165,15 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
       - name: Build with Maven
         run: mvn clean install
 
@@ -173,30 +188,33 @@ jobs:
           path: target/site/jacoco
 
       - name: Build Docker image
-        run: docker build -t icc-demo-app .
+        run: docker build -t igorgomes/spring-boot-integration:latest .
+
 ```
 
 ## JavaDoc
 
-JavaDoc genereras manuellt via `mvn javadoc:javadoc` eller via IntelliJ IDEA. Dokumentationen hittas under:
+JavaDoc kan enkelt genereras via verktygsmenyn i IntelliJ IDEA eller med kommandot `mvn javadoc:javadoc` (om Maven är installerat globalt).
 
-```
-target/site/apidocs/index.html
+Ingår inte i CI/CD-flödet för att undvika onödig belastning.
 ```
 
 ## Projektstruktur
 
 ```
 .
-├── src/
+├── .gitignore
+├── README.md
+├── pom.xml
 ├── Dockerfile
 ├── docker-compose.yaml
-├── pom.xml
-├── README.md
-└── .github/workflows/ci.yaml
+├── src/
+├── logs/
+└── .github/
+
 ```
 
 ---
 
 **Utvecklad av:** Igor Gomes – DevOps Engineer med fokus på integration och CI/CD  
-**LinkedIn:** [https://www.linkedin.com/in/igor-lopes-gomes-5b6184290](https://www.linkedin.com/in/igor-lopes-gomes-5b6184290)
+**LinkedIn:** [https://www.linkedin.com/in/igor-lopes-gomes-5b6184290]
