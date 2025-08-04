@@ -1,0 +1,48 @@
+# IntelliJ IDEA / JetBrains-filer
+.idea/
+*.iml
+/shelf/
+workspace.xml
+
+# Maven lokal konfigurationsfil (miljöberoende)
+.mvn/
+mavenHomeManager.xml
+
+# Maven-katalog och byggartefakter
+target/
+*.jar
+*.war
+*.ear
+/out/
+
+# Loggfiler (skapade av Logback)
+logs/
+*.log
+logback.log
+
+# Genererad JavaDoc (lokalt)
+docs/
+site/apidocs/
+**/javadoc/
+
+# Test och kodtäckningsrapporter (JaCoCo, Surefire)
+jacoco.exec
+surefire-reports/
+target/site/jacoco/
+
+# Temporära eller kompilerade filer
+*.class
+*.tmp
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Docker / Podman - lokala byggfiler
+*.tar
+*.oci
+*.pid
+*.sock
+*.podman
+
+
