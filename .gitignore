@@ -29,10 +29,13 @@ docs/
 site/apidocs/
 **/javadoc/
 
-# Test och kodtäckningsrapporter (JaCoCo, Surefire)
+# JaCoCo och testtäckningsrapporter
 jacoco.exec
-surefire-reports/
 target/site/jacoco/
+target/site/jacoco/*
+
+# Surefire-rapporter (testresultat)
+surefire-reports/
 
 # Temporära eller kompilerade filer
 *.class
