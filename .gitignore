@@ -16,7 +16,11 @@ target/
 /out/
 
 # Loggfiler (skapade av Logback)
-logs/
+# Ignorera alla loggfiler i mappen logs/, men behåll själva mappen i Git
+logs/*
+!logs/.gitkeep
+
+# Ignorera alla andra loggfiler i projektet
 *.log
 logback.log
 
