@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   app:
-    build: .
+    image: igor88gomes/spring-boot-integration:latest
     ports:
       - "8080:8080"
     depends_on:
@@ -12,7 +12,6 @@ services:
       - SPRING_ACTIVEMQ_USER=admin
       - SPRING_ACTIVEMQ_PASSWORD=admin
     volumes:
-      # Monterar loggmappen från värden till containern för att Logback ska kunna skriva loggfiler till värden
       - ./logs:/app/logs
 
   activemq:
