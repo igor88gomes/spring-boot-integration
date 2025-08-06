@@ -1,24 +1,57 @@
 version: '3.8'
 
 services:
-  app:
-    image: igor88gomes/spring-boot-integration:latest
-    ports:
-      - "8080:8080"
-    depends_on:
-      - activemq
+  postgres:
+    image: postgres:13
+    container_name: postgres
     environment:
-      - SPRING_ACTIVEMQ_BROKER-URL=tcp://activemq:61616
-      - SPRING_ACTIVEMQ_USER=admin
-      - SPRING_ACTIVEMQ_PASSWORD=admin
+      POSTGRES_USER: integration
+      POSTGRES_PASSWORD: integration_pass
+      POSTGRES_DB: integrationdb
     volumes:
-      - ./logs:/app/logs
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - integration-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U integration -d integrationdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   activemq:
-    image: docker.io/apache/activemq-classic:6.1.7
+    image: rmohr/activemq:5.15.9
+    container_name: activemq
     ports:
       - "61616:61616"
       - "8161:8161"
-    environment:
-      - ACTIVEMQ_ADMIN_LOGIN=admin
-      - ACTIVEMQ_ADMIN_PASSWORD=admin
+    networks:
+      - integration-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8161"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  integration-app:
+    image: igor88gomes/spring-boot-integration:latest
+    container_name: integration-app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      activemq:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    networks:
+      - integration-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+
+networks:
+  integration-net:
