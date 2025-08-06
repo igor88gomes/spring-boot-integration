@@ -5,11 +5,13 @@ import org.mockito.Mockito;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jms.core.JmsTemplate;
+import org.springframework.test.context.ActiveProfiles;
 
 /**
  * Enhetstest för MessageProducer-komponenten.
  * Verifierar att meddelanden skickas korrekt till ActiveMQ-kön.
  */
+@ActiveProfiles("test")
 @SpringBootTest
 class MessageProducerTest {
 

@@ -4,11 +4,13 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.ActiveProfiles;
 
 /**
  * Enhetstest för MessageConsumer-klassen.
  * Verifierar att mottagna meddelanden sparas korrekt i databasen.
  */
+@ActiveProfiles("test")
 @SpringBootTest
 class MessageConsumerTest {
 
