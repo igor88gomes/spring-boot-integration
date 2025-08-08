@@ -8,6 +8,7 @@ services:
       POSTGRES_USER: integration
       POSTGRES_PASSWORD: integration_pass
       POSTGRES_DB: integrationdb
+      TZ: Europe/Stockholm  # Ställ in tidszon för OS
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -21,6 +22,8 @@ services:
   activemq:
     image: rmohr/activemq:5.15.9
     container_name: activemq
+    environment:
+      TZ: Europe/Stockholm  # Ställ in tidszon för OS
     ports:
       - "61616:61616"
       - "8161:8161"
@@ -42,6 +45,10 @@ services:
         condition: service_healthy
     ports:
       - "8080:8080"
+    environment:
+      TZ: Europe/Stockholm  # Ställ in tidszon för OS
+    volumes:
+      - ./logs:/app/logs     # Loggfiler delas mellan container och värd
     networks:
       - integration-net
     healthcheck:
