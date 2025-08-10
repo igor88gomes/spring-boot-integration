@@ -1,0 +1,7 @@
+.git
+target/
+logs/
+**/.idea
+**/*.iml
+.DS_Store
+Thumbs.db
