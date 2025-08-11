@@ -25,7 +25,7 @@ logs/*
 logback.log
 
 # Genererad JavaDoc (lokalt)
-docs/
+docs/*
 site/apidocs/
 **/javadoc/
 
@@ -52,4 +52,7 @@ Thumbs.db
 *.sock
 *.podman
 
-
+# Tillåt endast PNG-diagram under dokument/bilder (behåll resten av dokumenten/ignorerade)
+!docs/images/
+docs/images/*
+!docs/images/*.png
