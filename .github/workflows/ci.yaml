@@ -1,16 +1,18 @@
 # .github/workflows/ci.yaml
-
 name: Java CI with Maven and Docker
 
 on:
   push:
-    branches: [ main, test ]
+    branches: [ main, test ]    # Kör tester när man pushar till både main och test
   pull_request:
-    branches: [ main, test ]
+    branches: [ main ]          # Blockerar merge till main om CI inte är grön
+
+concurrency:
+  group: ci-${{ github.ref }}   # Avbryt äldre körningar på samma gren
+  cancel-in-progress: true
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     services:
@@ -20,24 +22,17 @@ jobs:
           POSTGRES_USER: integration
           POSTGRES_PASSWORD: integration_pass
           POSTGRES_DB: integrationdb
-        ports:
-          - 5432:5432
+        ports: [ "5432:5432" ]
         options: >-
           --health-cmd="pg_isready -U integration -d integrationdb"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
+          --health-interval=10s --health-timeout=5s --health-retries=5
 
       activemq:
         image: rmohr/activemq:5.15.9
-        ports:
-          - 61616:61616
-          - 8161:8161
+        ports: [ "61616:61616", "8161:8161" ]
         options: >-
           --health-cmd="curl -f http://localhost:8161 || exit 1"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
+          --health-interval=10s --health-timeout=5s --health-retries=5
 
     steps:
       - uses: actions/checkout@v4
@@ -45,20 +40,21 @@ jobs:
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
+          distribution: temurin
           java-version: 17
+          cache: maven
 
       - name: Wait for services to be healthy
         run: |
           echo "Waiting for PostgreSQL..."
           until pg_isready -h localhost -U integration -d integrationdb; do sleep 2; done
-
           echo "Waiting for ActiveMQ..."
           until curl -sf http://localhost:8161; do sleep 2; done
 
-      - name: Build with Maven (test profile + JaCoCo)
-        run: mvn -B -Dspring.profiles.active=test clean install
+      - name: Build & test (JaCoCo)
+        run: mvn -B clean verify
 
+      # Ladda upp JaCoCo-rapport som artefakt (alla branches/PR)
       - name: Upload JaCoCo report
         uses: actions/upload-artifact@v4
         with:
@@ -66,15 +62,15 @@ jobs:
           path: target/site/jacoco/
           retention-days: 14
 
+      # Skapa Javadoc ENDAST på main (inte i PR)
       - name: Generate Javadoc (main only)
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         run: mvn -B -DskipTests javadoc:javadoc
 
       - name: Upload Javadoc (main only)
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: javadoc
           path: target/site/apidocs/
           retention-days: 14
-
