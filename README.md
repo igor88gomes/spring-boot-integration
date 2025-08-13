@@ -1,7 +1,7 @@
 # Spring Boot Integration – ICC Demo  
 
-[![CI](https://img.shields.io/github/actions/workflow/status/IgorGomes01/spring-boot-integration/ci.yaml?branch=main&label=CI)](../../actions/workflows/ci.yaml)
-[![CD](https://img.shields.io/github/actions/workflow/status/IgorGomes01/spring-boot-integration/docker-publish.yaml?branch=main&label=CD)](../../actions/workflows/docker-publish.yaml)
+[![CI](https://github.com/IgorGomes01/spring-boot-integration/actions/workflows/ci.yaml/badge.svg)](https://github.com/IgorGomes01/spring-boot-integration/actions/workflows/ci.yaml)
+[![CD](https://github.com/IgorGomes01/spring-boot-integration/actions/workflows/docker-publish.yaml/badge.svg)](https://github.com/IgorGomes01/spring-boot-integration/actions/workflows/docker-publish.yaml)
 [![Docker Hub](https://img.shields.io/badge/Docker%20Hub-image-blue)](https://hub.docker.com/u/igor88gomes)
 
 > Av Igor Lopes Gomes — DevOps Engineer
