@@ -1,5 +1,9 @@
 # Spring Boot Integration – ICC Demo  
 
+[![CI](https://img.shields.io/github/actions/workflow/status/IgorGomes01/spring-boot-integration/ci.yaml?branch=main&label=CI)](../../actions/workflows/ci.yaml)
+[![CD](https://img.shields.io/github/actions/workflow/status/IgorGomes01/spring-boot-integration/docker-publish.yaml?branch=main&label=CD)](../../actions/workflows/docker-publish.yaml)
+[![Docker Hub](https://img.shields.io/badge/Docker%20Hub-image-blue)](https://hub.docker.com/u/igor88gomes)
+
 > Av Igor Lopes Gomes — DevOps Engineer
 
 <p align="center">
@@ -13,7 +17,6 @@
        alt="CI/CD-pipeline – Spring Boot, Docker och GitHub Actions"
        width="900">
 </p>
-
 
 # Projektinformation
 
@@ -31,17 +34,18 @@ Loggningen är strukturerad i JSON-format med Logback och Logstash Encoder och s
 
 Två separata pipelines hanterar applikationens CI/CD-flöde:
 
-- **(CI)** `ci.yaml` validerar, bygger (Maven), testar och genererar kodtäckningsrapport (JaCoCo) vid 
-  varje ändring som pushas till brancherna `main` och `test`. JaCoCo-rapporten publiceras som artifact i
-  varje CI-körning och kan laddas ner från Actions-sidan. På `main` genereras även JavaDoc och 
-  publiceras som artifact.
+- **(CI)** `ci.yaml` validerar, bygger (Maven), testar och genererar kodtäckningsrapport (JaCoCo) vid
+  ändringar som pushas till brancherna `main` och `test`. JaCoCo-rapporten publiceras som **artefakt**
+  i varje CI-körning och kan laddas ner från Actions-sidan. På `main` genereras även JavaDoc och
+  publiceras som artefakt.
 
-- **(CD)** `docker-publish.yaml` bygger och publicerar automatiskt en ny version av applikationens Docker
-  image till Docker Hub vid push till `main`-branchen.
+- **(CD)** `docker-publish.yaml` bygger och publicerar applikationens Docker-image till Docker Hub vid 
+  push till `main` *(taggar Docker-imagen som `latest` och `<commit-SHA>` för spårbarhet)*.
 
-För en fullständig beskrivning av varje steg i CI/CD-flödet, se:
-- [.github/workflows/ci.yaml](./.github/workflows/ci.yaml)
-- [.github/workflows/docker-publish.yaml](./.github/workflows/docker-publish.yaml)
+För detaljer om pipelinen, se:
+- [.github/workflows/ci.yaml](.github/workflows/ci.yaml)
+- [.github/workflows/docker-publish.yaml](.github/workflows/docker-publish.yaml)
+- [docs/USAGE.md#ci-artifacts](docs/USAGE.md#ci-artifacts)
 
 Projektet är paketerat med Docker och körs lokalt med docker-compose, som konfigurerar tre containrar:
 Spring Boot-applikationen (integration-app), ActiveMQ-broker (activemq) och PostgreSQL-databas (postgres).
@@ -86,6 +90,39 @@ curl http://localhost:8080/api/all
 curl http://localhost:8080/actuator/health 
 ```
 
+### Spårbarhet i loggar (kort exempel)
+<details>
+<summary>Visa/dölj</summary>
+
+**Affärs-anrop:**
+```bash
+curl -X POST "http://localhost:8080/api/send?message=TestIntegration"
+```
+
+**`logs/app.log` (förkortad JSON):**
+```json
+[
+  {
+    "@timestamp": "2025-08-09T08:55:57.173+02:00",
+    "level": "INFO",
+    "logger_name": "com.igorgomes.integration.MessageProducer",
+    "message": "Skickar meddelande till kön: TestIntegration",
+    "messageId": "a43c8dfe-3703-4a32-94a0-c89824099a93"
+  },
+  {
+    "@timestamp": "2025-08-09T08:55:57.201+02:00",
+    "level": "INFO",
+    "logger_name": "com.igorgomes.integration.MessageConsumer",
+    "message": "Meddelande mottaget från kön: TestIntegration",
+    "messageId": "8c68a715-a4bf-4f2e-97c9-c624a31775b4"
+  }
+]
+```
+
+> Exemplet visar producer → consumer och hur `messageId` (MDC) kan följas end-to-end.
+> Fler kommandon och hel-loggar: se [docs/USAGE.md](docs/USAGE.md).
+</details>
+
 Arkitekturen möjliggör spårbar och tillförlitlig kommunikation i en modulär och lättunderhållen lösning.
 ---
 
@@ -94,7 +131,7 @@ Arkitekturen möjliggör spårbar och tillförlitlig kommunikation i en modulär
 - Exponerar REST API med Spring Boot
 - Hanterar asynkron meddelandeöverföring med ActiveMQ (JMS)
 - Lagrar persistent data i PostgreSQL via JPA
-- Loggar i JSON-format med Logback + MDC
+- Loggar i JSON-format med Logback + MDC med daglig rotation, sparas i 7 dagar
 - Kör enhetstester med JUnit 5 och Mockito
 - Körs i containeriserad miljö via Docker Compose
 
@@ -110,84 +147,50 @@ Arkitekturen möjliggör spårbar och tillförlitlig kommunikation i en modulär
 | JUnit + Mockito   | Enhetstester                           |
 
 ## Körning (Runtime)
-- Hela stacken körs containeriserad via **Docker Compose**:
-    - `integration-app` – applikationen (image: `igor88gomes/spring-boot-integration:latest`, byggd av CD)
-    - `activemq` – ActiveMQ (JMS)
-    - `postgres` – PostgreSQL
-- Ingen lokal JDK krävs för att **köra** med Compose.
-- För **lokal build/test utanför container** krävs JDK 17 och att stödtjänsterna är igång (t.ex. starta 
-  dem med `docker compose up`).
-- Kommandon för start, loggar och felsökning finns i [docs/USAGE.md](docs/USAGE.md).
+- **Hela stacken körs containeriserad med **Docker Compose** (stöd för Podman Compose):
+  - `integration-app` – applikationen (image: `igor88gomes/spring-boot-integration:latest`, **byggs och 
+     pushas av CD-pipelinen**)
+  - `activemq` – ActiveMQ (JMS)
+  - `postgres` – PostgreSQL
+- **Java 17 ingår i applikations-image; inget lokalt JDK krävs.**
 
 ### Bygg / CI & dokumentation
 
 - Maven – bygg- och beroendehantering
-- GitHub Actions (`.github/workflows/ci.yaml`) – CI (bygge + tester) 
+- GitHub Actions (`.github/workflows/ci.yaml`) – CI (bygge + tester)
 - JaCoCo – kodtäckning (artefakt i CI)
 - JavaDoc – API-dokumentation (artefakt i CI)
 
 ### Distribution (CD)
-- GitHub Actions (`.github/workflows/docker-publish.yaml`) – bygger/pushar image vid push till `main`
-- Docker Hub – `igor88gomes/spring-boot-integration:latest`
+- GitHub Actions (`.github/workflows/docker-publish.yaml`) – bygger/publicerar image vid push till `main`
+- Docker Hub – `igor88gomes/spring-boot-integration:latest` - Applikationens Docker-image
 
 ## Projektstruktur
 
-```text
+``` TEXT
 spring-boot-integration/
 │
 ├── src/                    # Java-källkod & tester
 ├── pom.xml                 # Maven-konfiguration
-├── Dockerfile              # Image för Spring Boot appen
-├── docker-compose.yaml     # Kör både app och ActiveMQ
-├── .github/workflows/      # CI/CD pipelines
-└── docs/                   # Dokumentation
+├── Dockerfile              # Bygg applikationens Docker-image
+├── docker-compose.yaml     # Lokalt orkestreringsstöd (app, ActiveMQ, PostgreSQL)
+├── .github/workflows/      # CI/CD-pipelines (ci.yaml, docker-publish.yaml)
+└── docs/                   # Dokumentation & bilder
+├── USAGE.md                # Körinstruktioner (steg-för-steg)
+├── PROJECT_HISTORY.md      # Utvecklingsresa
+└── images/                 # Bilder/diagram
+├── architecture-diagram.png
+└── cicd-pipeline-diagram.png
+
 ```
 
-**Detaljer:**
-- [USAGE](docs/USAGE.md)
-- [PROJECT_HISTORY](docs/PROJECT_HISTORY.md)
-- [images/](docs/images/)
+## Relaterade dokument
 
-## Loggning
-
-Applikationen loggar i JSON-format (Logback + Logstash Encoder) till **konsol** och **fil**.
-
-- Aktiv fil: `logs/app.log` för den aktuella dagen.
-- Daglig rotation: vid **första logghändelsen efter midnatt** roteras gårdagens logg till `logs/app.YYYY-MM-DD.log`.
-- Historik: äldre loggar sparas i **7 dagar**.
-
-Detaljerade kommandon för att visa loggar (docker/podman) och exempel på loggutdata finns i
-[docs/USAGE.md](docs/USAGE.md).
-
-## Test och kodtäckning
-
-Tester och kodtäckning (JaCoCo) körs i **CI-pipelinen** (GitHub Actions) vid push/PR till `main` 
-och `test`.
-
-**Så hämtar du rapporten:**
-1. Gå till **Actions** i GitHub-repot och öppna körningen för ditt commit.
-2. Under **Artifacts** klicka på **`jacoco-report`** och ladda ner ZIP:en.
-3. Öppna `index.html` i den nedladdade mappen för att se täckningen.
-
-> Obs: Rapporten lagras som artifact i 14 dagar och ingår inte i Docker-image eller i Git-repot.
-
-## JavaDoc
-
-JavaDoc genereras i **CI-pipelinen** (GitHub Actions) och publiceras som artifact (endast på `main`).
-
-**Så hämtar du dokumentationen:**
-1. Gå till **Actions** i GitHub-repot och öppna körningen för ditt commit.
-2. Under **Artifacts** klicka på **`javadoc`** och ladda ner ZIP:en.
-3. Öppna `index.html` i den nedladdade mappen (`target/site/apidocs/` i ZIP:en).
-
-> Obs: JavaDoc ingår inte i Docker-image eller i Git-repot (ignoreras i `.gitignore`).
-
-> Lösningen är utformad för att demonstrera moderna integrationsarkitekturer och inkluderar design, 
-implementation och automatisering av hela livscykeln för en applikation, från kod till driftsättning, med
-ett tydligt DevOps-perspektiv.
+- **Användning:** [docs/USAGE.md](docs/USAGE.md)  
+- **Utvecklingsresa:** [docs/PROJECT_HISTORY.md](docs/PROJECT_HISTORY.md)  
 
 ## Kontakt
 
-Igor Lopes Gomes 
-[LinkedIn](https://www.linkedin.com/in/igor-lopes-gomes-5b6184290) 
-[Docker Hub](https://hub.docker.com/u/igor88gomes)
+Igor Lopes Gomes — DevOps Engineer  
+[LinkedIn](https://www.linkedin.com/in/igor-lopes-gomes-5b6184290) · [Docker Hub](https://hub.docker.com/u/igor88gomes)  
+**E-post:** [igor88gomes@gmail.com](mailto:igor88gomes@gmail.com)
