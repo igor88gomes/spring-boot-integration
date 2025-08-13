@@ -11,12 +11,14 @@
        alt="Arkitekturöversikt – Spring Boot, ActiveMQ och PostgreSQL"
        width="900">
 </p>
+<p align="center"><em><strong>Bild 1.</strong> Arkitekturöversikt – Spring Boot, ActiveMQ och PostgreSQL.</em></p>
 
 <p align="center">
   <img src="docs/images/cicd-pipeline-diagram.png"
        alt="CI/CD-pipeline – Spring Boot, Docker och GitHub Actions"
        width="900">
 </p>
+<p align="center"><em><strong>Bild 2.</strong> CI/CD-pipeline – bygg, test (JaCoCo/JavaDoc) och publicering till Docker Hub.</em></p>
 
 ## Projektinformation
 
@@ -42,7 +44,9 @@ Två separata pipelines hanterar applikationens CI/CD-flöde:
 - **(CD)** `docker-publish.yaml` bygger och publicerar applikationsimagen till Docker Hub vid push till 
   `main` *(taggar `latest` och `<commit-SHA>` för spårbarhet)*.
 
-För detaljer om pipelinen, se:
+För en översiktlig bild av pipelinen/pipelineflödet, se **Bild 2**. 
+
+För flera detaljer om pipelinen, se:
 - [.github/workflows/ci.yaml](.github/workflows/ci.yaml)
 - [.github/workflows/docker-publish.yaml](.github/workflows/docker-publish.yaml)
 - [docs/USAGE.md#ci-artifacts](docs/USAGE.md#ci-artifacts)
@@ -54,7 +58,7 @@ För detaljer om pipelinen, se:
 
 ## Arkitekturöversikt
 
-Diagrammet i bilden ovan illustrerar den asynkrona, meddelandebaserade integrationsarkitekturen i 
+Se **Bild 1** ovan. Diagrammet visar den asynkrona, meddelandebaserade integrationsarkitekturen i 
 applikationen.
 
 1. Klienten (t.ex. Postman eller curl) skickar ett meddelande via REST-endpointen `/api/send`.
@@ -67,6 +71,7 @@ applikationen.
    hämtar data med hjälp av JPA.
 
 ## Affärs-API (REST)
+
 | Metod | Endpoint                 | Beskrivning                    |
 |------:|--------------------------|--------------------------------|
 | POST  | `/api/send?message=TEXT` | Skicka meddelande till kön     |
@@ -79,6 +84,7 @@ curl http://localhost:8080/api/all
 ```
 
 ## Övervakning (Actuator-API)
+
 | Metod | Endpoint            | Beskrivning            |
 |------:|---------------------|------------------------|
 | GET   | `/actuator/health`  | Hälsa/status för appen |
@@ -97,6 +103,7 @@ curl -X POST "http://localhost:8080/api/send?message=TestIntegration"
 ```
 
 **`logs/app.log` (förkortad JSON):**
+
 ```json
 [
   {
