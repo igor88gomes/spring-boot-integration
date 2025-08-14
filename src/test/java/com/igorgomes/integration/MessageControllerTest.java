@@ -18,6 +18,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Enhetstester för MessageController.
  * Verifierar REST-endpoints och deras funktionalitet.
  */
+
 @WebMvcTest(MessageController.class)
 class MessageControllerTest {
 
