@@ -52,7 +52,8 @@ Thumbs.db
 *.sock
 *.podman
 
-# Tillåt endast PNG-diagram under dokument/bilder (behåll resten av dokumenten/ignorerade)
+# Tillåt endast PNG-diagram under dokument/bilder och PROJECT_HISTORY.md (behåll resten av dokumenten/ignorerade)
 !docs/images/
 docs/images/*
 !docs/images/*.png
+!docs/PROJECT_HISTORY.md
