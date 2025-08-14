@@ -88,7 +88,6 @@ curl http://localhost:8080/api/all
 | Metod | Endpoint            | Beskrivning            |
 |------:|---------------------|------------------------|
 | GET   | `/actuator/health`  | Hälsa/status för appen |
-| GET   | `/actuator/info`    | App-information        |
 
 ```bash
 # Exempel (health)
