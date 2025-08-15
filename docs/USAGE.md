@@ -121,7 +121,7 @@ curl http://localhost:8080/actuator/health | jq
     - **GET** `http://localhost:8080/api/all`
 
 <p align="center">
-  <img src="./images/GET-API-ALL.png"
+  <img src="images/GET_API_ALL.png"
        alt="Postman – Exempel på GET /api/all"
        width="900">
 </p>
