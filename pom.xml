@@ -9,7 +9,9 @@
     <packaging>jar</packaging>
 
     <name>spring-boot-integration</name>
-    <description>Integrationsprojekt med Spring Boot, ActiveMQ och H2</description>
+    <!-- Beskrivning: PostgreSQL i drift, H2 endast för tester -->
+    <description>Integrationsprojekt med Spring Boot, ActiveMQ och PostgreSQL (H2 endast för tester)</description>
+
 
     <parent>
         <groupId>org.springframework.boot</groupId>
@@ -82,6 +84,19 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+
+            <!-- Kör alla tester med profilen "test" så att H2 (in-memory) används i testkörningar -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.2.5</version>
+                <configuration>
+                    <systemPropertyVariables>
+                        <!-- Aktiverar test-profilen under 'mvn test' / CI -->
+                        <spring.profiles.active>test</spring.profiles.active>
+                    </systemPropertyVariables>
+                </configuration>
             </plugin>
 
             <!-- Tvingar UTF-8-kodning vid hantering av resurser -->
