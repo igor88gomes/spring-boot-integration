@@ -77,11 +77,8 @@ curl "http://localhost:8080/actuator/health"
  ```bash
 curl http://localhost:8080/actuator/health | jq
 ```
-
-boot-integration$ curl "http://localhost:8080/actuator/health" | jq
-% Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-Dload  Upload   Total   Spent    Left  Speed
-100   330    0   330    0     0   6430      0 --:--:-- --:--:-- --:--:--  6470
+```json
+[
 {
 "status": "UP",
 "components": {
@@ -113,7 +110,8 @@ Dload  Upload   Total   Spent    Left  Speed
 }
 }
 }
-
+]
+```
 ### Med Postman (GUI)
 
 1. Öppna Postman.
@@ -123,7 +121,7 @@ Dload  Upload   Total   Spent    Left  Speed
     - **GET** `http://localhost:8080/api/all`
 
 <p align="center">
-  <img src="docs/images/GET-API-ALL.png"
+  <img src="images/GET-API-ALL.png"
        alt="Postman – Exempel på GET /api/all"
        width="900">
 </p>
@@ -170,6 +168,13 @@ Avsluta:
 ```sql
 `\q`
 ```
+
+## Felsökning
+
+- Port **8080** upptagen → stäng processen eller ändra port.
+- ActiveMQ-konsol: `http://localhost:8161` (user: `admin`, pass: `admin`).
+- Databasanslutning: verifiera att containern **postgres** körs och att strängen i `application.properties` pekar på `jdbc:postgresql://postgres:5432/integrationdb`.
+
 ---
 
 ## CI-artifacts
@@ -191,8 +196,6 @@ Avsluta:
 > Obs: JavaDoc lagras som artifact i **14 dagar** och ingår inte i Docker-image (ignoreras i `.gitignore`).
 ---
 
-## Felsökning
+> **Obs:** Pipelines och artifacts är fullt fungerande i detta repo och kan granskas direkt via **Actions**-fliken.  
+> Att reproducera pipeline i en egen miljö kräver uppdatering av konfiguration och credentials i GitHub Actions samt peka om publiceringen till ett eget **Docker Hub**-konto (container registry). Detta är utanför projektets huvudsyfte.
 
-- Port **8080** upptagen → stäng processen eller ändra port.
-- ActiveMQ-konsol: `http://localhost:8161` (user: `admin`, pass: `admin`).
-- Databasanslutning: verifiera att containern **postgres** körs och att strängen i `application.properties` pekar på `jdbc:postgresql://postgres:5432/integrationdb`.
