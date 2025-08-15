@@ -10,7 +10,7 @@ on:
   # workflow_dispatch:
 
 env:
-  # Ditt Docker Hub-repo (container registry), byt namespace/namn
+  # Imagenamn för publicering till Docker Hub (standard för detta repo)
   IMAGE_NAME: docker.io/igor88gomes/spring-boot-integration
 
 jobs:
