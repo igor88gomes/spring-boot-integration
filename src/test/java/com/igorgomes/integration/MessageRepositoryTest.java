@@ -12,7 +12,6 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @ActiveProfiles("test")
 @DataJpaTest
-@org.springframework.test.context.ActiveProfiles("test")
 class MessageRepositoryTest {
 
     @Autowired
