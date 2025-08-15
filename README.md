@@ -136,9 +136,11 @@ Arkitekturen möjliggör spårbar och tillförlitlig kommunikation i en modulär
 - Exponerar REST API med Spring Boot
 - Hanterar asynkron meddelandeöverföring med ActiveMQ (JMS)
 - Lagrar persistent data i PostgreSQL via JPA
-- Loggar i JSON-format med Logback + MDC med daglig rotation, sparas i 7 dagar
+- Loggar i JSON-format med Logback + MDC
 - Kör enhetstester med JUnit 5 och Mockito
+- Kör automatiska tester i CI-miljö med H2-databas
 - Körs i containeriserad miljö via Docker Compose
+
 
 ## Teknologier
 
