@@ -197,5 +197,5 @@ Avsluta:
 ---
 
 > **Obs:** Pipelines och artifacts är fullt fungerande i detta repo och kan granskas direkt via **Actions**-fliken.  
+> Vid automatiska tester i CI används en in-memory **H2**-databas istället för PostgreSQL för snabbare körning och enklare underhåll.  
 > Att reproducera pipeline i en egen miljö kräver uppdatering av konfiguration och credentials i GitHub Actions samt peka om publiceringen till ett eget **Docker Hub**-konto (container registry). Detta är utanför projektets huvudsyfte.
-

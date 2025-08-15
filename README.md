@@ -36,10 +36,10 @@ Loggningen är strukturerad i JSON-format med Logback och Logstash Encoder och s
 
 Två separata pipelines hanterar applikationens CI/CD-flöde:
 
-- **(CI)** `ci.yaml` validerar, bygger (Maven), testar och genererar kodtäckningsrapport (JaCoCo) vid
-  ändringar som pushas till brancherna `main` och `test`. JaCoCo-rapporten publiceras som **artefakt**
-  i varje CI-körning och kan laddas ner från Actions-sidan. På `main` genereras även JavaDoc och
-  publiceras som artefakt.
+- **(CI)** `ci.yaml` validerar, bygger (Maven), testar (med H2 in-memory databas i CI-miljö för 
+  enkelhet och isolerade tester) och genererar kodtäckningsrapport (JaCoCo) vid ändringar som pushas
+  till brancherna `main` och `test`. JaCoCo-rapporten publiceras som **artefakt** i varje CI-körning
+  och kan laddas ner från Actions-sidan. På `main` genereras även JavaDoc och publiceras som artefakt.
 
 - **(CD)** `docker-publish.yaml` bygger och publicerar applikationsimagen till Docker Hub vid push till 
   `main` *(taggar `latest` och `<commit-SHA>` för spårbarhet)*.
@@ -47,13 +47,16 @@ Två separata pipelines hanterar applikationens CI/CD-flöde:
 För en översiktlig bild av pipelinen/pipelineflödet, se **Bild 2**. 
 
 För flera detaljer om pipelinen, se:
+
 - [.github/workflows/ci.yaml](.github/workflows/ci.yaml)
 - [.github/workflows/docker-publish.yaml](.github/workflows/docker-publish.yaml)
 - [docs/USAGE.md#ci-artifacts](docs/USAGE.md#ci-artifacts)
 
-**Sammanfattning:** Lösningen körs i containers med asynkrona köer (ActiveMQ), persistens (PostgreSQL) och 
-  spårbar JSON-loggning. Lokalt startas stacken med **Docker Compose**, och **CI/CD i GitHub Actions** 
-  automatiserar bygg och publicering av applikationsimagen.
+**Sammanfattning:** Lösningen körs i containers med asynkrona köer (ActiveMQ), persistens (PostgreSQL) och
+spårbar JSON-loggning. Lokalt startas stacken med **Docker Compose**, och **CI/CD i GitHub Actions**
+automatiserar bygg och publicering av applikationsimagen samt kör automatiska tester i CI med en 
+in-memory **H2**-databas för snabb återkoppling i en isolerad testmiljö.
+
 ---
 
 ## Arkitekturöversikt
@@ -139,23 +142,25 @@ Arkitekturen möjliggör spårbar och tillförlitlig kommunikation i en modulär
 
 ## Teknologier
 
-| Teknologi         | Användning                             |
-|-------------------|----------------------------------------|
-| Spring Boot 3.3.2 | Huvudramverk                           |
-| ActiveMQ          | Meddelandekö (JMS)                     |
-| PostgreSQL        | Databashanterare via JPA               |
-| Spring Data JPA   | Hantering av entiteter och datalagring |
-| Logback + MDC     | Strukturerad loggning i JSON-format    |
-| JUnit + Mockito   | Enhetstester                           |
+| Teknologi         | Användning                                    |
+|-------------------|-----------------------------------------------|
+| Spring Boot 3.3.2 | Huvudramverk                                  |
+| ActiveMQ          | Meddelandekö (JMS)                            |
+| H2 Database       | In-memory databas för automatiska tester i CI |
+| PostgreSQL        | Databashanterare via JPA (containermiljö)     |
+| Spring Data JPA   | Hantering av entiteter och datalagring        |
+| Logback + MDC     | Strukturerad loggning i JSON-format           |
+| JUnit + Mockito   | Enhetstester                                  |
 
 ## Körning (Runtime)
 
-- **Hela stacken körs containeriserad med Docker Compose** (stöd för Podman Compose):
-    - `integration-app` – applikationen (image: `igor88gomes/spring-boot-integration:latest`, **byggs och
-       pushas av CD-pipelinen**)
-    - `activemq` – ActiveMQ (JMS)
-    - `postgres` – PostgreSQL
-- **Java 17 ingår i applikationsimagen; inget lokalt JDK krävs.**
+**Hela stacken körs containeriserad med Docker Compose** (stöd för Podman Compose):
+    
+- `integration-app` – applikationen (image: `igor88gomes/spring-boot-integration:latest`, **byggs och
+   pushas av CD-pipelinen**)
+- `activemq` – ActiveMQ (JMS)
+- `postgres` – PostgreSQL
+**Java 17 ingår i applikationsimagen; inget lokalt JDK krävs.**
 
 ### Bygg / CI & dokumentation (GitHub Actions)
 
@@ -171,7 +176,7 @@ Arkitekturen möjliggör spårbar och tillförlitlig kommunikation i en modulär
 - **Publicering:** bygger och publicerar applikationsimagen till Docker Hub
 - **Taggar:** `latest` + `<commit-SHA>`
 - **Register:** `igor88gomes/spring-boot-integration`   
-  *(Standardtaggen är `latest` om inget anges; varje build taggas även med `<commit-SHA>` för spårbarhet.)*
+*(Standardtaggen är `latest` om inget anges; varje build taggas även med `<commit-SHA>` för spårbarhet.)*
 
 ## Projektstruktur
 
