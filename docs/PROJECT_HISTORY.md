@@ -2,8 +2,13 @@
 
 ## Bakgrund
 
-Projektet började som en enkel prototyp i IntelliJ med **H2 (in-memory)** för snabb utveckling och enkel testning.  
-Målet var att verifiera flödet **REST API → köhantering (JMS) → datalagring** utan att behöva extern infrastruktur.
+Applikationen utvecklades från grunden i **Java 17 med Spring Boot 3**  
+för att demonstrera en komplett integrationslösning med **REST API, JMS och datalagring**.
+
+I början kördes den som en enkel prototyp i IntelliJ med den inbyggda databasen **H2 (in-memory)**  
+som tillhandahölls via Spring Boot, tillsammans med en lokalt installerad **ActiveMQ-tjänst**.  
+Detta innebar att ActiveMQ behövde laddas ner och startas manuellt på utvecklingsmaskinen  
+för att applikationen skulle fungera fullt ut.
 
 ## Viktiga steg och förändringar
 
@@ -33,7 +38,7 @@ Målet var att verifiera flödet **REST API → köhantering (JMS) → datalagri
 
 **Varför:** 
 
-- Minska lokala beroenden och undvika "fungerar på min maskin"-problem genom att köra hela stacken i containrar istället för att installera tjänster manuellt på sin dator.
+- Minska lokala beroenden och undvika "fungerar på min maskin"-problem genom att köra hela stacken automatiskt via **Docker Compose** i containrar istället för att installera tjänster manuellt på sin dator.
 
 **Teknik:** 
 
@@ -63,6 +68,11 @@ Målet var att verifiera flödet **REST API → köhantering (JMS) → datalagri
             - Commit-specifik tagg (`<commit-SHA>`) för historik och reproducerbarhet.
         - Detta gör att vem som helst kan starta den uppdaterade applikationen direkt från Docker Hub utan att behöva bygga lokalt.
     - **Artefakter istället för incheckning:** Rapporter och dokumentation lagras som Actions-artefakter för att hålla containrar små och koden ren.
+
+#### Byggkedjan från kod till container**  
+  
+    → Docker-imagen skapas direkt från projektets egen källkod (Spring Boot-applikationen och dess logik).  
+    → Detta säkerställer att den publicerade imagen alltid motsvarar det faktiska projektet och dess utveckling.
 
 ---
 
