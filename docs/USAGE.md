@@ -2,19 +2,16 @@
 
 ## Förutsättningar
 
-Det antas att **Docker** *eller* **Podman** redan är installerat. Instruktionerna visar **Docker** som standard,
-men samma steg fungerar med **Podman** – ersätt bara `docker` med `podman` (och `docker compose` med `podman-compose`).
+Innan du börjar, se till att följande är installerat på systemet:
 
-> Exempel:
+- **Docker** och **Docker Compose**  
+  *eller*
+- **Podman** och **Podman Compose**
 
- ```bash
-docker compose up --build
-# eller
-podman-compose up --build
- ```
+Instruktionerna nedan använder **Docker** som standard.  
+Om du använder **Podman**, ersätt helt enkelt `docker` med `podman` och  
+`docker compose` med `podman-compose`.
 
-Du kan testa API:erna med **curl** (CLI) eller **Postman** (GUI). Oavsett om du kör i **Linux**, i en virtuell maskin eller via WSL i 
-**Windows** kan du nå tjänsterna via http://localhost:PORT om portarna är exponerade.
 ---
 
 ## Snabbstart
@@ -22,10 +19,9 @@ Du kan testa API:erna med **curl** (CLI) eller **Postman** (GUI). Oavsett om du 
 ### 1) Klona projektet
 
 ```bash
-git clone https://github.com/IgorGomes01/spring-boot-integration.git
+git clone https://github.com/igor88gomes/spring-boot-integration.git
 cd spring-boot-integration
 ```
-
 ### 2) Bygg och starta stacken (app + ActiveMQ + PostgreSQL)
 
 ```bash
@@ -49,7 +45,12 @@ docker compose down
 
 ---
 
-## Testa API:er
+## Testa API:erna
+
+Du kan testa API:erna med **curl** (CLI) eller **Postman** (GUI).  
+GET-endpoints kan även öppnas direkt i webbläsaren.
+
+Tjänsterna är tillgängliga via `http://localhost:PORT` om portarna är exponerade.
 
 ### Med curl (CLI)
 
@@ -64,13 +65,8 @@ curl "http://localhost:8080/api/all"
 curl "http://localhost:8080/actuator/health"
 ```
 
-**Tips:** Installera verktyget **jq** för att formatera och färgmarkera JSON-data direkt i terminalen, vilket gör både API-svar och loggfiler enklare att läsa.
-
-**Installation (Debian/Ubuntu/WSL):**
-
-```bash
- sudo apt update && sudo apt install jq -y
- ```
+**Tips:** Verktyget **jq** kan installeras för att formatera och färgmarkera JSON-data direkt i terminalen.  
+Det gör både API-svar och loggfiler enklare att läsa, men är helt valfritt.
 
 **Exempelanvändning med API-svar:**
 
