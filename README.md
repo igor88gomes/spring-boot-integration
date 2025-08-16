@@ -4,7 +4,7 @@
 [![CD – main](https://github.com/IgorGomes01/spring-boot-integration/actions/workflows/docker-publish.yaml/badge.svg?branch=main)](https://github.com/IgorGomes01/spring-boot-integration/actions/workflows/docker-publish.yaml)
 [![Docker Hub](https://img.shields.io/badge/Docker%20Hub-image-blue)](https://hub.docker.com/u/igor88gomes)
 
-> Av Igor Lopes Gomes — DevOps Engineer
+> Av Igor Gomes — DevOps Engineer
 
 <p align="center">
   <img src="docs/images/architecture-diagram.png"
@@ -201,6 +201,6 @@ spring-boot-integration/
 
 ## Kontakt
 
-Igor Lopes Gomes — DevOps Engineer  
-[LinkedIn](https://www.linkedin.com/in/igor-lopes-gomes-5b6184290) · [Docker Hub](https://hub.docker.com/u/igor88gomes)  
+Igor Gomes — DevOps Engineer  
+[LinkedIn](https://www.linkedin.com/in/igor-gomes-5b6184290) · [Docker Hub](https://hub.docker.com/u/igor88gomes)  
 **E-post:** [igor88gomes@gmail.com](mailto:igor88gomes@gmail.com)
