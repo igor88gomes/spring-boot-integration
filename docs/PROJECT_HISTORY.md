@@ -1,4 +1,4 @@
-# Project History – utvecklingsresa och beslut
+# Utvecklingsresa och beslut
 
 ## Bakgrund
 
