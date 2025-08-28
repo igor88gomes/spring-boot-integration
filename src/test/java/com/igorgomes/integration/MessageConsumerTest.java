@@ -24,7 +24,8 @@ class MessageConsumerTest {
     void testReceiveMessage() {
         MessageConsumer consumer = new MessageConsumer(messageRepository);
 
-        consumer.receiveMessage("TestMeddelande");
+        consumer.receiveMessage("TestMeddelande", null);
+
 
         // Verifierar att save-metoden anropades exakt en gång
         Mockito.verify(messageRepository, Mockito.times(1))

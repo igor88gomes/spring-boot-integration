@@ -6,6 +6,9 @@ import org.slf4j.MDC;
 import org.springframework.jms.annotation.JmsListener;
 import org.springframework.stereotype.Component;
 
+import org.springframework.messaging.handler.annotation.Header;
+
+
 import java.util.UUID;
 
 /**
@@ -33,12 +36,14 @@ public class MessageConsumer {
      * @param message Meddelandet mottaget från kön.
      */
     @JmsListener(destination = "test-queue")
-    public void receiveMessage(String message) {
+    public void receiveMessage(String message,
+        @Header(name = "messageId", required = false) String headerMessageId) {
 
-        // Hämtar befintligt messageId (om det finns, t.ex. från ett annat system)
-        // eller skapar ett nytt UUID för loggspårning.
-        String messageId = MDC.get("messageId") != null ? MDC.get("messageId") : UUID.randomUUID().toString();
-        MDC.put("messageId", messageId);
+            // Prioritera header → annars MDC → annars nytt UUID (samma beteende som tidigare om header saknas)
+            String messageId = (headerMessageId != null && !headerMessageId.isBlank())
+                    ? headerMessageId
+                    : (MDC.get("messageId") != null ? MDC.get("messageId") : UUID.randomUUID().toString());
+            MDC.put("messageId", messageId);
 
         try {
             logger.info("Meddelande mottaget från kön: {}", message);
