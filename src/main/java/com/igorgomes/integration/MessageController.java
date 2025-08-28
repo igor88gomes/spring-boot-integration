@@ -4,7 +4,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 
 /**
@@ -39,12 +40,20 @@ public class MessageController {
 
     /**
      * Tar emot ett meddelande via HTTP POST och skickar det till kön.
+     * Validerar att parametern 'message' inte är null/tom eller endast whitespace;
+     * vid ogiltig indata returneras 400 (Bad Request).
      *
      * @param message Meddelandet som ska skickas.
      * @return Bekräftelsetext.
      */
     @PostMapping("/api/send")
     public String sendMessage(@RequestParam String message) {
+
+        // Validering: blockera null/tomma/vita tecken → 400 (Bad Request)
+        if (message == null || message.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Parametern 'message' får inte vara tom.");
+        }
+
         messageProducer.sendMessage(message);
         return "Meddelande skickat till kön: " + message;
     }

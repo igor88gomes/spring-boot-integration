@@ -7,13 +7,20 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.hamcrest.Matchers.containsString;
+import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.*;
 
 /**
  * Enhetstester för MessageController.
@@ -52,6 +59,26 @@ class MessageControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string("Meddelande skickat till kön: Testmeddelande"));
     }
+
+    /**
+     * Testar att POST /api/send ger 400 (Bad Request) när 'message' är tom/whitespace
+     * och att felorsaken (exception reason) matchar vår svenska valideringstext.
+     */
+    @Test
+    void sendMessage_narParamTom_skaGe400_medSvenskFeltext() throws Exception {
+        MvcResult result = mockMvc.perform(post("/api/send").param("message", "   "))
+                .andExpect(status().isBadRequest())
+                .andReturn();
+
+        Exception ex = result.getResolvedException();
+        assertNotNull(ex, "Förväntade en exception (ResponseStatusException)");
+        assertTrue(ex instanceof ResponseStatusException, "Exception ska vara ResponseStatusException");
+        assertTrue(((ResponseStatusException) ex).getReason().contains("Parametern 'message' får inte vara tom."));
+
+        // Säkerställ att producenten INTE anropas vid ogiltig indata
+        verify(messageProducer, never()).sendMessage(anyString());
+    }
+
 
     /**
      * Testar GET /api/all som hämtar alla meddelanden från databasen.
