@@ -6,6 +6,10 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.test.context.ActiveProfiles;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+import org.springframework.jms.core.MessagePostProcessor;
+
 
 /**
  * Enhetstest för MessageProducer-komponenten.
@@ -27,7 +31,8 @@ class MessageProducerTest {
 
         producer.sendMessage("TestQueueMessage");
 
-        Mockito.verify(jmsTemplate, Mockito.times(1))
-                .convertAndSend("test-queue", "TestQueueMessage");
+        verify(jmsTemplate, times(1))
+                .convertAndSend(eq("test-queue"), eq("TestQueueMessage"), any(MessagePostProcessor.class));
+
     }
 }

@@ -6,6 +6,10 @@ import org.slf4j.MDC;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.stereotype.Service;
 
+import org.slf4j.MDC;
+import org.springframework.jms.core.MessagePostProcessor; // pode ser opcional no import
+
+
 import java.util.UUID;
 
 /**
@@ -40,7 +44,13 @@ public class MessageProducer {
 
         try {
             logger.info("Skickar meddelande till kön: {}", message);
-            jmsTemplate.convertAndSend("test-queue", message);
+
+            // Skicka som tidigare, men lägg till en header om id finns
+            jmsTemplate.convertAndSend("test-queue", message, m -> {
+                m.setStringProperty("messageId", messageId);
+                return m;
+            });
+
             logger.info("Meddelandet skickades framgångsrikt!");
         } catch (Exception e) {
             logger.error("Fel vid försök att skicka meddelandet!", e);
@@ -49,5 +59,8 @@ public class MessageProducer {
             // Tömmer MDC för att undvika kontextläckage mellan trådar.
             MDC.clear();
         }
+        // Hämta ev. korrelations-id från MDC (om det finns)
+        final String currentMessageId = MDC.get("messageId");
+
     }
 }
