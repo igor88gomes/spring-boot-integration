@@ -85,6 +85,12 @@ applikationen.
 curl -X POST "http://localhost:8080/api/send?message=TestIntegration"
 curl http://localhost:8080/api/all
 ```
+> **Validering:** `POST /api/send` returnerar **400 (Bad Request)** om parametern `message` är tom eller endast blanktecken (*whitespace*).
+
+```bash
+# Exempel: parametern `message` är tom/blank
+curl -i -X POST http://localhost:8080/api/send -d "message= "
+```
 
 ## Övervakning (Actuator-API)
 
@@ -104,29 +110,30 @@ curl http://localhost:8080/actuator/health
 curl -X POST "http://localhost:8080/api/send?message=TestIntegration"
 ```
 
-**`logs/app.log` (förkortad JSON):**
+**`logs/app.log`**
 
 ```json
 [
   {
-    "@timestamp": "2025-08-09T08:55:57.173+02:00",
+    "@timestamp": "2025-08-28T21:39:27.407+02:00",
     "level": "INFO",
     "logger_name": "com.igorgomes.integration.MessageProducer",
     "message": "Skickar meddelande till kön: TestIntegration",
-    "messageId": "a43c8dfe-3703-4a32-94a0-c89824099a93"
+    "messageId": "03c5e1af-e53d-4a9c-890c-1259457ca6bd"
   },
   {
-    "@timestamp": "2025-08-09T08:55:57.201+02:00",
+    "@timestamp": "2025-08-28T21:39:27.504+02:00",
     "level": "INFO",
     "logger_name": "com.igorgomes.integration.MessageConsumer",
     "message": "Meddelande mottaget från kön: TestIntegration",
-    "messageId": "8c68a715-a4bf-4f2e-97c9-c624a31775b4"
+    "messageId": "03c5e1af-e53d-4a9c-890c-1259457ca6bd"
   }
 ]
+
 ```
 
-> Exemplet visar producer → consumer och hur `messageId` (MDC) kan följas end-to-end.
-> Fler kommandon och hel-loggar: se [docs/USAGE.md](docs/USAGE.md).
+> Exemplet visar end-to-end-korrelation: producenten skickar `messageId` i **JMS-headern** och konsumenten läser headern och sätter samma `messageId` i MDC. Därmed kan samma ID följas genom hela flödet.
+Se [docs/USAGE.md](docs/USAGE.md) för fler kommandon och loggar.
 
 Arkitekturen möjliggör spårbar och tillförlitlig kommunikation i en modulär och lättunderhållen lösning.
 ---
@@ -140,7 +147,6 @@ Arkitekturen möjliggör spårbar och tillförlitlig kommunikation i en modulär
 - Kör enhetstester med JUnit 5 och Mockito
 - Kör automatiska tester i CI-miljö med H2-databas
 - Körs i containeriserad miljö via Docker Compose
-
 
 ## Teknologier
 

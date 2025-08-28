@@ -25,8 +25,8 @@ cd spring-boot-integration
 ### 2) Bygg och starta stacken (app + ActiveMQ + PostgreSQL)
 
 ```bash
-docker compose up --build
-# alt: podman-compose up --build
+docker compose up --build -d
+# alt: podman-compose up --build -d
 ```
 
 ### 3) Kontrollera körande containrar
@@ -107,7 +107,15 @@ curl http://localhost:8080/actuator/health | jq
 }
 }
 ]
+
 ```
+**Obs – validering:** Följande anrop ska ge **400**:
+```bash
+curl -i -X POST "http://localhost:8080/api/send?message=%20%20%20"  # URL-enkodat whitespace
+# alt:
+curl -i -X POST http://localhost:8080/api/send -d "message=   "     # form body
+```
+
 ### Med Postman (GUI)
 
 1. Öppna Postman.
@@ -145,6 +153,51 @@ Visa loggar från applikationscontainern:
 docker logs integration-app
 # alt: podman logs integration-app
 ```
+
+### Verifiera end-to-end-korrelation i loggar (samma `messageId`)
+
+> Förutsättning: du kör med loggvolymen `./logs:/app/logs` och har `jq` installerat.
+
+**1) Skicka några testmeddelanden**
+```bash
+curl -X POST "http://localhost:8080/api/send?message=Test-1"
+curl -X POST "http://localhost:8080/api/send?message=Test-2"
+curl -X POST "http://localhost:8080/api/send?message=Test-3"
+```
+**2) Visa producentens rader (tid, text, messageId)**
+
+```bash
+tail -n 50 logs/app.log | jq -r '
+  select(.logger_name=="com.igorgomes.integration.MessageProducer")
+  | [.["@timestamp"], .message, .messageId] | @tsv
+'
+```
+Exempelutdata (28 aug 2025):
+  
+2025-08-28T23:28:40.151588744+02:00    Skickar meddelande till kön: Test-1    b6ac63b2-48ba-4302-8157-a66bca80ef63
+2025-08-28T23:28:40.323012015+02:00    Meddelandet skickades framgångsrikt!    b6ac63b2-48ba-4302-8157-a66bca80ef63
+2025-08-28T23:28:50.228941906+02:00    Skickar meddelande till kön: Test-2    25da904c-b786-4082-922a-9d2aa8b699be
+2025-08-28T23:28:50.252255905+02:00    Meddelandet skickades framgångsrikt!    25da904c-b786-4082-922a-9d2aa8b699be
+2025-08-28T23:29:09.858531378+02:00    Skickar meddelande till kön: Test-3    b9b08a24-43c0-4061-867a-f7cf50dad76d
+2025-08-28T23:29:09.871739857+02:00    Meddelandet skickades framgångsrikt!    b9b08a24-43c0-4061-867a-f7cf50dad76d
+
+**3) Visa konsumentens rader (tid, text, messageId)**
+
+```bash
+tail -n 50 logs/app.log | jq -r '
+  select(.logger_name=="com.igorgomes.integration.MessageConsumer")
+  | [.["@timestamp"], .message, .messageId] | @tsv
+'
+```
+
+Exempelutdata (28 aug 2025):  
+
+2025-08-28T23:28:40.330647854+02:00    Meddelande mottaget från kön: Test-1    b6ac63b2-48ba-4302-8157-a66bca80ef63
+2025-08-28T23:28:40.56074628+02:00     Meddelande sparat i databasen!         b6ac63b2-48ba-4302-8157-a66bca80ef63
+2025-08-28T23:28:50.246452919+02:00    Meddelande mottaget från kön: Test-2    25da904c-b786-4082-922a-9d2aa8b699be
+2025-08-28T23:28:50.255022952+02:00    Meddelande sparat i databasen!         25da904c-b786-4082-922a-9d2aa8b699be
+2025-08-28T23:29:09.865085119+02:00    Meddelande mottaget från kön: Test-3    b9b08a24-43c0-4061-867a-f7cf50dad76d
+2025-08-28T23:29:09.87307005+02:00     Meddelande sparat i databasen!         b9b08a24-43c0-4061-867a-f7cf50dad76d
 
 ## Databasåtkomst (PostgreSQL)
 

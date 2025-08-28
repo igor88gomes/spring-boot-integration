@@ -12,7 +12,7 @@ för att applikationen skulle fungera fullt ut.
 
 ## Viktiga steg och förändringar
 
-### 1. Databasbyte: H2 → PostgreSQL
+### 1. Databasbyte: H2 → PostgreSQL   
 
 **Varför:** 
 
@@ -85,11 +85,22 @@ för att applikationen skulle fungera fullt ut.
 
 ---
 
-## Möjliga nästa steg
+## Möjliga framtida steg
 
-- Införa **kontrakttester** för API och meddelandeformat.
-- Använda **Flyway** eller liknande för versionshantering av databas.
-- Skapa en **extra CI-pipeline** för att köra integrationstester mot en **PostgreSQL-container**.
-- Skapa Helm/Argo CD-manifest för drift i **OpenShift** eller Kubernetes.
-- Utöka övervakning med fler **Actuator-metrics** och **Elastic APM**, samt skapa larmregler och dashboards för visualisering i **Kibana**.
+> **Mål:** göra applikationen mer robust genom kontinuerliga förbättringar samt löpande förfining av kod och dokumentation.
 
+- Införa **kontrakttester** för REST-API:t och meddelandeformat (t.ex. Spring Cloud Contract/Pact).
+- Införa **Flyway** för versionshantering av databasen.
+- Skapa en **separat CI-pipeline** för integrationstester (Testcontainers med PostgreSQL och ActiveMQ/Artemis).
+- Skapa **Helm-chart** och/eller **Argo CD-applikationer** för drift i OpenShift/Kubernetes.
+- Utöka observabilitet: fler **Actuator-metrik**, **Micrometer/Prometheus** och **Elastic APM**; larm och dashboards i **Kibana**.
+- Förbättra felhantering: central **@ControllerAdvice**, standardiserad felmodell och tydligare loggning.
+- Förstärka konfiguration och säkerhet: kö-namn via property med default, hemligheter via miljövariabler/GitHub Secrets, begränsad Actuator-exponering i produktion.
+- Kodhygien: **JPA-auditering** (Instant/@CreatedDate), små refaktoreringar och **OpenAPI/Swagger** för API-dokumentation.
+
+### Kontinuerliga förbättringar (löpande)
+
+#### 2025-08-28 — Inputvalidering och end-to-end-korrelation
+- `/api/send`: validering → **400 (Bad Request)** vid tom eller endast blanktecken i `message`.
+- `MessageProducer`: sätter `messageId` som **JMS-header**.
+- `MessageConsumer`: läser `messageId`-headern och sätter den i MDC → **samma `messageId`** i producer- och consumer-loggar (E2E-spårbarhet).
