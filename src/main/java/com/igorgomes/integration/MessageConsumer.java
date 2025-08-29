@@ -53,8 +53,8 @@ public class MessageConsumer {
             logger.error("Fel vid bearbetning av meddelande!", e);
         } finally {
 
-            // Tömmer kontexten för att undvika läckage mellan trådar.
-            MDC.clear();
+            // Ta bort endast 'messageId' från MDC
+            MDC.remove("messageId");
         }
     }
 }
