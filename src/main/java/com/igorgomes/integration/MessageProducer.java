@@ -27,10 +27,8 @@ public class MessageProducer {
 
     /**
      * Skickar ett meddelande till kön "test-queue".
-     * Använder, om tillgängligt, 'messageId' från MDC för korrelation; om nyckeln saknas skickas
-     * utan header (bakåtkompatibelt).
-     *
-     * @param message Innehållet i meddelandet som ska skickas.
+     * Använder, om tillgängligt, 'messageId' från MDC för korrelation; om nyckeln saknas
+     * skickas meddelandet utan header (bakåtkompatibelt).
      */
 
     public void sendMessage(String message) {
@@ -51,5 +49,6 @@ public class MessageProducer {
         } catch (Exception e) {
             logger.error("Fel vid försök att skicka meddelandet!", e);
         }
+        // Obs: Ingen rensning av MDC här eftersom producenten inte sätter 'messageId'
     }
 }
