@@ -5,11 +5,6 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.stereotype.Service;
-
-import org.slf4j.MDC;
-import org.springframework.jms.core.MessagePostProcessor; // pode ser opcional no import
-
-
 import java.util.UUID;
 
 /**
@@ -32,35 +27,29 @@ public class MessageProducer {
 
     /**
      * Skickar ett meddelande till kön "test-queue".
-     * Ett unikt messageId genereras för loggspårning.
+     * Använder, om tillgängligt, 'messageId' från MDC för korrelation; om nyckeln saknas skickas
+     * utan header (bakåtkompatibelt).
      *
      * @param message Innehållet i meddelandet som ska skickas.
      */
-    public void sendMessage(String message) {
 
-        // Genererar ett unikt ID (UUID) för att spåra meddelandet i loggar.
-        String messageId = UUID.randomUUID().toString();
-        MDC.put("messageId", messageId);
+    public void sendMessage(String message) {
+        // Hämta ev. korrelations-id från MDC (före sändning)
+        final String currentMessageId = MDC.get("messageId");
 
         try {
             logger.info("Skickar meddelande till kön: {}", message);
 
-            // Skicka som tidigare, men lägg till en header om id finns
             jmsTemplate.convertAndSend("test-queue", message, m -> {
-                m.setStringProperty("messageId", messageId);
+                if (currentMessageId != null && !currentMessageId.isBlank()) {
+                    m.setStringProperty("messageId", currentMessageId);
+                }
                 return m;
             });
 
             logger.info("Meddelandet skickades framgångsrikt!");
         } catch (Exception e) {
             logger.error("Fel vid försök att skicka meddelandet!", e);
-        } finally {
-
-            // Tömmer MDC för att undvika kontextläckage mellan trådar.
-            MDC.clear();
         }
-        // Hämta ev. korrelations-id från MDC (om det finns)
-        final String currentMessageId = MDC.get("messageId");
-
     }
 }
