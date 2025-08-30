@@ -58,4 +58,6 @@ docs/images/*
 !docs/images/*.png
 !docs/PROJECT_HISTORY.md
 !docs/USAGE.md
+!docs/TESTS.md
+
 
