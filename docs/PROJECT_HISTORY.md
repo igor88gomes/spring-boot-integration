@@ -1,6 +1,6 @@
 # Utvecklingsresa och beslut
 
-## Sammanfattning (TL;DR)
+## Sammanfattning
 - Asynkron integration: REST → JMS (ActiveMQ) → PostgreSQL.
 - End-to-end (E2E) korrelations-ID (MDC + JMS header) med JSON-loggar.
 - CI/CD i GitHub Actions; imagen publiceras till Docker Hub.
