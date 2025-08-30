@@ -137,7 +137,7 @@ curl -X POST "http://localhost:8080/api/send?message=TestIntegration"
 ```
 > Exemplet visar end-to-end-korrelation: producenten skickar `messageId` i **JMS-headern** och konsumenten läser headern och sätter samma `messageId` i MDC. Därmed kan samma ID följas genom hela flödet.
 
-### Så funkar korrelationen (MDC + JMS)
+### Korrelationsflöde (MDC + JMS)
 - **Controller**: Säkerställer att `messageId` finns i MDC för varje anrop; skapar UUID om det saknas och tar bort nyckeln i `finally` endast om den sattes här.
 - **Producer**: Läser `messageId` från MDC och skickar som **JMS-header**; rör inte MDC.
 - **Consumer**: Läser headern `messageId`, lägger in i MDC under bearbetning för loggkorrelation och tar bort just den nyckeln i `finally`.
@@ -145,7 +145,7 @@ curl -X POST "http://localhost:8080/api/send?message=TestIntegration"
 Detta gör att samma `messageId` kan följas från HTTP-ingången, via kön, till persistens. 
 Se [docs/USAGE.md](docs/USAGE.md) för fler detaljer och körningskommandon.
 
-### Tester (korrelations-kontrakt)
+### Tester (korrelationskontrakt)
 - Producer sätter `messageId` som JMS-header när MDC har värde; annars inte.
 - Controller ser till att `messageId` finns i MDC för `/api/send`.
 - Se `MessageProducerTest` för fallen *MDC present* och *MDC missing*.
