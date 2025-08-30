@@ -59,7 +59,7 @@ in-memory **H2**-databas för snabb återkoppling i en isolerad testmiljö.
 
 ---
 
-## Arkitekturöversikt
+## Arkitektur & korrelation (översikt)
 
 Se **Bild 1** ovan. Diagrammet visar den asynkrona, meddelandebaserade integrationsarkitekturen i 
 applikationen.
@@ -73,7 +73,9 @@ applikationen.
 4. Klienten kan hämta alla sparade meddelanden via `/api/all`, vilket anropar `MessageController` och 
    hämtar data med hjälp av JPA.
 
-## Affärs-API (REST)
+> Arkitekturen möjliggör spårbar och tillförlitlig kommunikation i en modulär och lättunderhållen lösning.
+
+### Affärs-API (REST)
 
 | Metod | Endpoint                 | Beskrivning                    |
 |------:|--------------------------|--------------------------------|
@@ -92,7 +94,7 @@ curl http://localhost:8080/api/all
 curl -i -X POST http://localhost:8080/api/send -d "message= "
 ```
 
-## Övervakning (Actuator-API)
+### Övervakning (Actuator-API)
 
 | Metod | Endpoint            | Beskrivning            |
 |------:|---------------------|------------------------|
@@ -103,7 +105,9 @@ curl -i -X POST http://localhost:8080/api/send -d "message= "
 curl http://localhost:8080/actuator/health 
 ```
 
-### Spårbarhet i loggar (exempel)
+## Spårbarhet & korrelations-ID
+
+### Loggexempel
 
 **Affärs-anrop:**
 ```bash
@@ -131,12 +135,22 @@ curl -X POST "http://localhost:8080/api/send?message=TestIntegration"
 ]
 
 ```
-
 > Exemplet visar end-to-end-korrelation: producenten skickar `messageId` i **JMS-headern** och konsumenten läser headern och sätter samma `messageId` i MDC. Därmed kan samma ID följas genom hela flödet.
-Se [docs/USAGE.md](docs/USAGE.md) för fler kommandon och loggar.
 
-Arkitekturen möjliggör spårbar och tillförlitlig kommunikation i en modulär och lättunderhållen lösning.
----
+### Så funkar korrelationen (MDC + JMS)
+- **Controller**: Säkerställer att `messageId` finns i MDC för varje anrop; skapar UUID om det saknas och tar bort nyckeln i `finally` endast om den sattes här.
+- **Producer**: Läser `messageId` från MDC och skickar som **JMS-header**; rör inte MDC.
+- **Consumer**: Läser headern `messageId`, lägger in i MDC under bearbetning för loggkorrelation och tar bort just den nyckeln i `finally`.
+
+Detta gör att samma `messageId` kan följas från HTTP-ingången, via kön, till persistens. 
+Se [docs/USAGE.md](docs/USAGE.md) för fler detaljer och körningskommandon.
+
+### Tester (korrelations-kontrakt)
+- Producer sätter `messageId` som JMS-header när MDC har värde; annars inte.
+- Controller ser till att `messageId` finns i MDC för `/api/send`.
+- Se `MessageProducerTest` för fallen *MDC present* och *MDC missing*.
+
+Se [docs/TESTS.md](docs/TESTS.md) för fler detaljer.
 
 ## Funktionalitet
 
