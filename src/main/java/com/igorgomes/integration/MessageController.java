@@ -1,5 +1,6 @@
 package com.igorgomes.integration;
 
+import org.slf4j.MDC;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -7,6 +8,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
+import java.util.UUID;
+
 
 /**
  * REST-kontroller som hanterar HTTP-förfrågningar för att skicka och hämta meddelanden.
@@ -37,11 +40,14 @@ public class MessageController {
     public List<String> getMessages() {
         return List.of("Meddelande 1", "Meddelande 2", "Meddelande 3");
     }
-
     /**
      * Tar emot ett meddelande via HTTP POST och skickar det till kön.
      * Validerar att parametern 'message' inte är null/tom eller endast whitespace;
      * vid ogiltig indata returneras 400 (Bad Request).
+     *
+     * Säkerställer även ett korrelations-id i MDC:
+     * - Om 'messageId' saknas i MDC sätts ett nytt UUID innan vidare sändning.
+     * - Nyckeln tas bort i finally **endast** om den sattes här (”den som skapar, städar”).
      *
      * @param message Meddelandet som ska skickas.
      * @return Bekräftelsetext.
@@ -54,8 +60,24 @@ public class MessageController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Parametern 'message' får inte vara tom.");
         }
 
-        messageProducer.sendMessage(message);
-        return "Meddelande skickat till kön: " + message;
+        // Säkerställ korrelations-id i MDC för detta anrop (om saknas)
+        String existing = MDC.get("messageId");
+        boolean putByController = false;
+        if (existing == null || existing.isBlank()) {
+            MDC.put("messageId", UUID.randomUUID().toString());
+            putByController = true;
+        }
+
+        try {
+            // Producer läser ev. 'messageId' från MDC och skickar som JMS-header
+            messageProducer.sendMessage(message);
+            return "Meddelande skickat till kön: " + message;
+        } finally {
+            // Ta bort endast om den sattes här (lämna andra MDC-nycklar orörda)
+            if (putByController) {
+                MDC.remove("messageId");
+            }
+        }
     }
 
     /**
