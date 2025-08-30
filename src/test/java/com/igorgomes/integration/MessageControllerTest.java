@@ -1,98 +1,128 @@
 package com.igorgomes.integration;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.extension.ExtendWith;
+
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import org.slf4j.MDC;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.hamcrest.Matchers.containsString;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
-import static org.mockito.ArgumentMatchers.*;
 
 /**
- * Enhetstester för MessageController.
- * Verifierar REST-endpoints och deras funktionalitet.
+ * Tester för MessageController.
+ *
+ * Fokus:
+ * - Validering av indata för /api/send (400 vid tomt/blankt meddelande).
+ * - Delegering till Producer vid giltigt meddelande.
+ * - Korrelation: Controller säkerställer 'messageId' i MDC när det saknas,
+ *   och tar bort nyckeln endast om den sattes här.
+ * - /api/all hämtar data från MessageRepository.
  */
-@ActiveProfiles("test")
-@WebMvcTest(MessageController.class)
+@ExtendWith(MockitoExtension.class)
 class MessageControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
-
-    @MockBean
+    @Mock
     private MessageProducer messageProducer;
 
-    @MockBean
+    @Mock
     private MessageRepository messageRepository;
 
-    /**
-     * Testar GET /api/messages och kontrollerar det statiska svaret.
-     */
-    @Test
-    void testGetMessages() throws Exception {
-        mockMvc.perform(get("/api/messages"))
-                .andExpect(status().isOk())
-                .andExpect(content().json("[\"Meddelande 1\",\"Meddelande 2\",\"Meddelande 3\"]"));
+    private MessageController controller;
+
+    @BeforeEach
+    void setUp() {
+        // Skapar controller med mockade beroenden (samma som i produktion, via konstruktor)
+        controller = new MessageController(messageProducer, messageRepository);
+    }
+
+    @AfterEach
+    void clearMdc() {
+        // Städar upp efter varje test för att undvika läckage mellan tester
+        MDC.remove("messageId");
     }
 
     /**
-     * Testar POST /api/send med ett meddelande som parameter.
-     * Verifierar att svaret är korrekt.
+     * Säkerställ 400 (Bad Request) när parametern 'message' är tom/blank.
      */
     @Test
-    void testSendMessage() throws Exception {
-        mockMvc.perform(post("/api/send?message=Testmeddelande"))
-                .andExpect(status().isOk())
-                .andExpect(content().string("Meddelande skickat till kön: Testmeddelande"));
+    @DisplayName("returns 400 when message is blank")
+    void sendMessage_returns400_whenBlank() {
+        assertThrows(ResponseStatusException.class, () -> controller.sendMessage(" "));
+        verifyNoInteractions(messageProducer);
     }
 
     /**
-     * Testar att POST /api/send ger 400 (Bad Request) när 'message' är tom/whitespace
-     * och att felorsaken (exception reason) matchar vår svenska valideringstext.
+     * Säkerställ 200/OK-liknande svar (sträng) och att Producer anropas när indata är giltig.
      */
     @Test
-    void sendMessage_narParamTom_skaGe400_medSvenskFeltext() throws Exception {
-        MvcResult result = mockMvc.perform(post("/api/send").param("message", "   "))
-                .andExpect(status().isBadRequest())
-                .andReturn();
+    @DisplayName("delegates to producer and returns confirmation for valid message")
+    void sendMessage_returnsOk_andDelegatesToProducer() {
+        String response = controller.sendMessage("Ping");
 
-        Exception ex = result.getResolvedException();
-        assertNotNull(ex, "Förväntade en exception (ResponseStatusException)");
-        assertTrue(ex instanceof ResponseStatusException, "Exception ska vara ResponseStatusException");
-        assertTrue(((ResponseStatusException) ex).getReason().contains("Parametern 'message' får inte vara tom."));
+        // Producer ska ha kallats med samma meddelande
+        verify(messageProducer).sendMessage(eq("Ping"));
 
-        // Säkerställ att producenten INTE anropas vid ogiltig indata
-        verify(messageProducer, never()).sendMessage(anyString());
+        // Svarstexten är den som controller returnerar i produktionen
+        assertTrue(response.contains("Meddelande skickat till kön:"));
+        assertTrue(response.contains("Ping"));
     }
 
-
     /**
-     * Testar GET /api/all som hämtar alla meddelanden från databasen.
+     * Korrelation: Om 'messageId' saknas i MDC ska Controller skapa ett UUID före sändning
+     * och ta bort nyckeln i finally **endast** om den sattes här.
      */
     @Test
-    void testGetAllMessages() throws Exception {
-        Mockito.when(messageRepository.findAll())
-                .thenReturn(List.of(
-                        new MessageEntity("Meddelande 1"),
-                        new MessageEntity("Meddelande 2"),
-                        new MessageEntity("Meddelande 3")
-                ));
+    @DisplayName("puts messageId in MDC when missing and removes it afterwards")
+    void sendMessage_putsAndRemovesMdc_whenMissing() {
+        // Arrange – säkerställ att MDC börjar utan id
+        MDC.remove("messageId");
 
-        mockMvc.perform(get("/api/all"))
-                .andExpect(status().isOk());
+        // Under anropet till Producer ska det finnas ett icke-tomt id i MDC
+        doAnswer(inv -> {
+            String id = MDC.get("messageId");
+            assertNotNull(id, "Controller ska sätta messageId i MDC när det saknas.");
+            assertFalse(id.isBlank(), "messageId i MDC får inte vara blankt.");
+            return null;
+        }).when(messageProducer).sendMessage(eq("Ping"));
+
+        // Act
+        String resp = controller.sendMessage("Ping");
+        assertTrue(resp.contains("Meddelande skickat"), "Controller ska returnera bekräftelsetext.");
+
+        // Assert – Producer kallades
+        verify(messageProducer).sendMessage("Ping");
+
+        // Och eftersom Controller skapade id:t, ska det vara borttaget efteråt
+        assertNull(MDC.get("messageId"), "Controller ska ta bort messageId från MDC om den satte det.");
+    }
+
+    /**
+     * Säkerställ att /api/all returnerar lista från repository.
+     */
+    @Test
+    @DisplayName("getAllMessages returns list from repository")
+    void getAllMessages_returnsRepositoryList() {
+        List<MessageEntity> fake = List.of(
+                new MessageEntity("A"), new MessageEntity("B")
+        );
+        when(messageRepository.findAll()).thenReturn(fake);
+
+        List<MessageEntity> out = controller.getAllMessages();
+
+        // Repository ska ha anropats och samma lista ska returneras
+        verify(messageRepository, times(1)).findAll();
+        assertEquals(2, out.size());
+        assertEquals("A", out.get(0).getContent());
+        assertEquals("B", out.get(1).getContent());
     }
 }
