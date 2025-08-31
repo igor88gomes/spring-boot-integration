@@ -5,24 +5,37 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.stereotype.Service;
-import java.util.UUID;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 
 /**
- * Service-komponent som ansvarar för att skicka meddelanden till ActiveMQ-kön.
+ * Service-komponent som ansvarar för att skicka meddelanden till den
+ * konfigurerade kön (`app.queue.name`, default: `test-queue`). Läser ev.
+ * korrelations-id (`messageId`) från MDC och skickar det som JMS-header.
  */
 @Service
 public class MessageProducer {
 
     private static final Logger logger = LoggerFactory.getLogger(MessageProducer.class);
     private final JmsTemplate jmsTemplate;
+    private final String queueName;
 
     /**
-     * Konstruktor som injicerar beroendet till JmsTemplate.
-     *
-     * @param jmsTemplate JmsTemplate för att skicka meddelanden.
+     * Konstruktor för tester (utan Spring): behåller 'test-queue' som default.
      */
     public MessageProducer(JmsTemplate jmsTemplate) {
+        this(jmsTemplate, "test-queue");
+    }
+
+    /**
+     * Konstruktor för runtime (med Spring): läser kö-namn från property
+     * (fallback: 'test-queue').
+     */
+    @Autowired
+    public MessageProducer(JmsTemplate jmsTemplate,
+                           @Value("${app.queue.name:test-queue}") String queueName) {
         this.jmsTemplate = jmsTemplate;
+        this.queueName = queueName;
     }
 
     /**

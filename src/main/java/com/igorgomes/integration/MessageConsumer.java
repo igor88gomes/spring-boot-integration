@@ -30,12 +30,15 @@ public class MessageConsumer {
     }
 
     /**
-     * Lyssnar på meddelanden från "test-queue" och bearbetar dem.
-     * Om inget messageId finns, genereras ett nytt för spårning.
+     * Lyssnar på meddelanden från den konfigurerade kön
+     * (`app.queue.name`, default: `test-queue`) och bearbetar dem.
+     * Läser korrelations-id (`messageId`) från JMS-headern och sätter det i MDC
+     * för loggkorrelation. Om headern saknas genereras ett nytt `messageId`
+     * för spårbarhet.
      *
      * @param message Meddelandet mottaget från kön.
      */
-    @JmsListener(destination = "test-queue")
+    @JmsListener(destination = "${app.queue.name:test-queue}")
     public void receiveMessage(String message,
         @Header(name = "messageId", required = false) String headerMessageId) {
 
