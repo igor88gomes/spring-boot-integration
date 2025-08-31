@@ -36,6 +36,13 @@ public class MessageProducer {
                            @Value("${app.queue.name:test-queue}") String queueName) {
         this.jmsTemplate = jmsTemplate;
         this.queueName = queueName;
+        // Logga vald kö vid initiering.
+        logActiveQueue();
+    }
+
+    /** Loggar vald kö från konfiguration (hjälper vid felsökning i olika miljöer). */
+    private void logActiveQueue() {
+        logger.info("Aktiv kö (konfiguration): {}", queueName);
     }
 
     /**
