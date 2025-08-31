@@ -98,10 +98,6 @@ för att applikationen skulle fungera fullt ut.
 
 ### Nästa steg (liten insats → stor nytta)
 
-- **Kö-namn via property (med default)**  
-  Externalisera kö-namnet till `app.queue.name` med fallback `test-queue`.  
-  **Effekt:** enklare att byta kö per miljö utan kodändring.
-
 - **Kontrakttester för REST + JMS-header (Spring Cloud Contract/Pact)**  
   Verifiera:
     - `POST /api/send` → **400** vid tomt/blankt `message`; **200** annars.
@@ -167,3 +163,11 @@ för att applikationen skulle fungera fullt ut.
 - **Övrigt**: `.gitignore` justerad för att tillåta `docs/TESTS.md`.
 
 **Effekt:** konsekvent E2E-spårbarhet, ingen onödig MDC-rensning och starkare kontraktstester i CI.
+
+#### #### 2025-08-31 — Kö-namn via property + observabilitet
+- **Genomfört:** externaliserat kö-namn till `app.queue.name` med fallback `test-queue`.
+- **Producer:** läser konfigurerat kö-namn och loggar “Aktiv kö (konfiguration): …” vid uppstart.
+- **Consumer:** `@JmsListener(destination = "${app.queue.name:test-queue}")` — samma property.
+- **Actuator:** `/actuator/info` visar nu `{ "queue": { "name": "<värde>" } }`.
+
+**Effekt:** följer 12-factor (konfig per miljö via env `APP_QUEUE_NAME`), inga ändringar i tester (default kvar), och tydlig synlighet både i logg och Actuator.

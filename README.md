@@ -96,14 +96,22 @@ curl -i -X POST http://localhost:8080/api/send -d "message= "
 
 ### Övervakning (Actuator-API)
 
-| Metod | Endpoint            | Beskrivning            |
-|------:|---------------------|------------------------|
-| GET   | `/actuator/health`  | Hälsa/status för appen |
+| Metod | Endpoint             | Beskrivning                      |
+|------:|----------------------|----------------------------------|
+| GET   | `/actuator/health`   | Hälsa/status för appen           |
+| GET   | `/actuator/info`     | Konfigurationsmetadata (kö-namn) |
 
 ```bash
 # Exempel (health)
 curl http://localhost:8080/actuator/health 
 ```
+
+```bash
+# Exempel (info)
+curl http://localhost:8080/actuator/info
+```
+
+> **(12‑factor):** Sätt kö-namn via `app.queue.name` (fallback `test-queue`) eller env `APP_QUEUE_NAME` för konfiguration per miljö.
 
 ## Spårbarhet & korrelations-ID
 

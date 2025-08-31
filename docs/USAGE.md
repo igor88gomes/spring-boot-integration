@@ -121,6 +121,7 @@ curl -i -X POST http://localhost:8080/api/send -d "message=   "     # form body
 1. Öppna Postman.
 2. Anropa:
     - **GET** `http://localhost:8080/actuator/health`
+    - **GET** `http://localhost:8080/actuator/info`
     - **POST** `http://localhost:8080/api/send?message=HejTest`
     - **GET** `http://localhost:8080/api/all`
 
@@ -131,7 +132,7 @@ curl -i -X POST http://localhost:8080/api/send -d "message=   "     # form body
 </p>
 <p align="center"><em><strong>Bild 3.</strong> Exempel på GET <code>/api/all</code> i Postman som visar alla lagrade meddelanden.</em></p>
 
-> Tips: Skapa en liten **collection** i Postman med ovan tre requests för snabb regressionstest.
+> Tips: Skapa en liten **collection** i Postman med ovan fyra requests för snabb regressionstest.
 
 ## Loggar och spårbarhet
 
@@ -160,9 +161,8 @@ docker logs integration-app
 
 **1) Skicka några testmeddelanden**
 ```bash
-curl -X POST "http://localhost:8080/api/send?message=Test-1"
-curl -X POST "http://localhost:8080/api/send?message=Test-2"
-curl -X POST "http://localhost:8080/api/send?message=Test-3"
+curl -X POST "http://localhost:8080/api/send?message=Test"
+
 ```
 **2) Visa producentens rader (tid, text, messageId)**
 
@@ -172,14 +172,18 @@ tail -n 50 logs/app.log | jq -r '
   | [.["@timestamp"], .message, .messageId] | @tsv
 '
 ```
-Exempelutdata (28 aug 2025):
-  
-2025-08-28T23:28:40.151588744+02:00    Skickar meddelande till kön: Test-1    b6ac63b2-48ba-4302-8157-a66bca80ef63
-2025-08-28T23:28:40.323012015+02:00    Meddelandet skickades framgångsrikt!    b6ac63b2-48ba-4302-8157-a66bca80ef63
-2025-08-28T23:28:50.228941906+02:00    Skickar meddelande till kön: Test-2    25da904c-b786-4082-922a-9d2aa8b699be
-2025-08-28T23:28:50.252255905+02:00    Meddelandet skickades framgångsrikt!    25da904c-b786-4082-922a-9d2aa8b699be
-2025-08-28T23:29:09.858531378+02:00    Skickar meddelande till kön: Test-3    b9b08a24-43c0-4061-867a-f7cf50dad76d
-2025-08-28T23:29:09.871739857+02:00    Meddelandet skickades framgångsrikt!    b9b08a24-43c0-4061-867a-f7cf50dad76d
+
+Exempelutdata (1 sep 2025):
+
+```text
+2025-09-01T00:49:26.818886199+02:00     Aktiv kö (konfiguration): test-queue
+2025-09-01T00:51:54.187148005+02:00     Skickar meddelande till kön: Test-1     50de7a3b-b8e0-4fe6-8497-3663012fe7e5
+2025-09-01T00:51:54.412839282+02:00     Meddelandet skickades framgångsrikt!    50de7a3b-b8e0-4fe6-8497-3663012fe7e5
+2025-09-01T00:52:02.644401358+02:00     Skickar meddelande till kön: Test-2     244fb974-76a0-422e-9dde-248e1ea536cb
+2025-09-01T00:52:02.669139559+02:00     Meddelandet skickades framgångsrikt!    244fb974-76a0-422e-9dde-248e1ea536cb
+2025-09-01T00:52:09.308283094+02:00     Skickar meddelande till kön: Test-3     ee36e1c6-bbce-4e7e-b4eb-3efa31a8dfec
+2025-09-01T00:52:09.325314642+02:00     Meddelandet skickades framgångsrikt!    ee36e1c6-bbce-4e7e-b4eb-3efa31a8dfec
+```
 
 **3) Visa konsumentens rader (tid, text, messageId)**
 
@@ -190,14 +194,16 @@ tail -n 50 logs/app.log | jq -r '
 '
 ```
 
-Exempelutdata (28 aug 2025):  
+Exempelutdata (1 sep 2025):
 
-2025-08-28T23:28:40.330647854+02:00    Meddelande mottaget från kön: Test-1    b6ac63b2-48ba-4302-8157-a66bca80ef63
-2025-08-28T23:28:40.56074628+02:00     Meddelande sparat i databasen!         b6ac63b2-48ba-4302-8157-a66bca80ef63
-2025-08-28T23:28:50.246452919+02:00    Meddelande mottaget från kön: Test-2    25da904c-b786-4082-922a-9d2aa8b699be
-2025-08-28T23:28:50.255022952+02:00    Meddelande sparat i databasen!         25da904c-b786-4082-922a-9d2aa8b699be
-2025-08-28T23:29:09.865085119+02:00    Meddelande mottaget från kön: Test-3    b9b08a24-43c0-4061-867a-f7cf50dad76d
-2025-08-28T23:29:09.87307005+02:00     Meddelande sparat i databasen!         b9b08a24-43c0-4061-867a-f7cf50dad76d
+```text
+2025-09-01T00:51:54.4817882+02:00       Meddelande mottaget från kön: Test-1    50de7a3b-b8e0-4fe6-8497-3663012fe7e5
+2025-09-01T00:51:54.775159808+02:00     Meddelande sparat i databasen!          50de7a3b-b8e0-4fe6-8497-3663012fe7e5
+2025-09-01T00:52:02.650607228+02:00     Meddelande mottaget från kön: Test-2    244fb974-76a0-422e-9dde-248e1ea536cb
+2025-09-01T00:52:02.667178526+02:00     Meddelande sparat i databasen!          244fb974-76a0-422e-9dde-248e1ea536cb
+2025-09-01T00:52:09.312866768+02:00     Meddelande mottaget från kön: Test-3    ee36e1c6-bbce-4e7e-b4eb-3efa31a8dfec
+2025-09-01T00:52:09.323411022+02:00     Meddelande sparat i databasen!          ee36e1c6-bbce-4e7e-b4eb-3efa31a8dfec
+```
 
 ## Databasåtkomst (PostgreSQL)
 
