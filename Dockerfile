@@ -17,5 +17,5 @@ RUN mkdir -p /app/logs && chmod -R 777 /app/logs
 # Kopiera byggd JAR från byggsteget
 COPY --from=build /app/target/integration-0.0.1-SNAPSHOT.jar app.jar
 
-# Starta applikationen med rätt tidszon för JVM
-ENTRYPOINT ["java", "-Duser.timezone=Europe/Stockholm", "-jar", "app.jar"]
+# Starta applikationen
+ENTRYPOINT ["java", "-jar", "app.jar"]
