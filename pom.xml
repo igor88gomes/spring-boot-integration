@@ -92,6 +92,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.2.5</version>
                 <configuration>
+                    <argLine>-Duser.timezone=UTC</argLine>
                     <systemPropertyVariables>
                         <!-- Aktiverar test-profilen under 'mvn test' / CI -->
                         <spring.profiles.active>test</spring.profiles.active>
@@ -99,7 +100,7 @@
                 </configuration>
             </plugin>
 
-            <!-- Tvingar UTF-8-kodning vid hantering av resurser -->
+            <!-- Använder UTF-8-kodning vid hantering av resurser -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-resources-plugin</artifactId>

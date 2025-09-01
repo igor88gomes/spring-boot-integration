@@ -8,8 +8,8 @@ RUN mvn clean package -DskipTests
 FROM eclipse-temurin:17-jdk
 WORKDIR /app
 
-# Ange rätt tidszon i containern (samma som Sverige)
-ENV TZ=Europe/Stockholm
+# Kör i UTC för konsekventa tider
+ENV JAVA_TOOL_OPTIONS="${JAVA_TOOL_OPTIONS} -Duser.timezone=UTC"
 
 # Skapa loggmapp och ge skrivbehörighet
 RUN mkdir -p /app/logs && chmod -R 777 /app/logs
