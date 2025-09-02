@@ -1,5 +1,5 @@
 # .github/workflows/ci.yaml
-name: Java CI with Maven and Docker
+name: Java CI with Maven
 
 on:
   push:
@@ -15,25 +15,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres:13
-        env:
-          POSTGRES_USER: integration
-          POSTGRES_PASSWORD: integration_pass
-          POSTGRES_DB: integrationdb
-        ports: [ "5432:5432" ]
-        options: >-
-          --health-cmd="pg_isready -U integration -d integrationdb"
-          --health-interval=10s --health-timeout=5s --health-retries=5
-
-      activemq:
-        image: rmohr/activemq:5.15.9
-        ports: [ "61616:61616", "8161:8161" ]
-        options: >-
-          --health-cmd="curl -f http://localhost:8161 || exit 1"
-          --health-interval=10s --health-timeout=5s --health-retries=5
-
     steps:
       - uses: actions/checkout@v4
 
@@ -44,18 +25,12 @@ jobs:
           java-version: 17
           cache: maven
 
-      - name: Wait for services to be healthy
-        run: |
-          echo "Waiting for PostgreSQL..."
-          until pg_isready -h localhost -U integration -d integrationdb; do sleep 2; done
-          echo "Waiting for ActiveMQ..."
-          until curl -sf http://localhost:8161; do sleep 2; done
-
       - name: Build & test (JaCoCo)
         run: mvn -B clean verify
 
-      # Ladda upp JaCoCo-rapport som artefakt (alla branches/PR)
+      # Ladda upp kodtäckningsrapport (även om tester fallerar, för analys)
       - name: Upload JaCoCo report
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: jacoco-report
