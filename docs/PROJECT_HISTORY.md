@@ -177,4 +177,4 @@ för att applikationen skulle fungera fullt ut.
 - **Verifierat:** JSON-loggar med `Z`-suffix, HTTP `Date` i **GMT**, databas `now()` visar **+00**.
 - **Notis:** Vid behov konvertera från UTC till användarens tidszon.
 
-- **Effekt:** Konsekventa tidsstämplar end-to-end, inga avvikelser vid skiftet mellan sommartid och normaltid, enklare korrelation och felsökning.
+**Effekt:** Konsekventa tidsstämplar end-to-end, inga avvikelser vid skiftet mellan sommartid och normaltid, enklare korrelation och felsökning.
