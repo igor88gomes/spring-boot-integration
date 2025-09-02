@@ -92,7 +92,6 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.2.5</version>
                 <configuration>
-                    <argLine>-Duser.timezone=UTC</argLine>
                     <systemPropertyVariables>
                         <!-- Aktiverar test-profilen under 'mvn test' / CI -->
                         <spring.profiles.active>test</spring.profiles.active>
