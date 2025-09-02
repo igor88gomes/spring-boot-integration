@@ -110,9 +110,8 @@ för att applikationen skulle fungera fullt ut.
 
 - **Säkerhet & kryptering – baslinje (rekommenderad nu)**
     - **TLS mot ActiveMQ:** använd `ssl://` (t.ex. port **61617**) och servercertifikat.
-    - **Hemligheter via env/Secrets:** broker user/pass i miljövariabler/GitHub Secrets.
     - **Logghygien:** logga inte meddelandekroppen i **INFO**; logga `messageId` + status.  
-      **Effekt:** skyddar trafik i transit, minskar läckagerisk i loggar, noll intrång i payload.
+    - **Effekt:** skyddar trafik i transit, minskar läckagerisk i loggar, noll intrång i payload.
 
 ### Medel sikt
 
@@ -172,9 +171,24 @@ för att applikationen skulle fungera fullt ut.
 
 **Effekt:** följer 12-factor (konfig per miljö via env `APP_QUEUE_NAME`), inga ändringar i tester (default kvar), och tydlig synlighet både i logg och Actuator.
 
-#### 2025-09-02 — Tidszon standardiserad till UTC
+#### 2025-09-01 — Tidszon standardiserad till UTC
 - **Genomfört:** JVM i UTC (`JAVA_TOOL_OPTIONS`), Logback i UTC, PostgreSQL i UTC; Compose utan lokal TZ.
 - **Verifierat:** JSON-loggar med `Z`-suffix, HTTP `Date` i **GMT**, databas `now()` visar **+00**.
 - **Notis:** Vid behov konvertera från UTC till användarens tidszon.
 
 **Effekt:** Konsekventa tidsstämplar end-to-end, inga avvikelser vid skiftet mellan sommartid och normaltid, enklare korrelation och felsökning.
+
+## 2025-09-02 — Konfiguration & säkerhet städad
+
+**Genomfört:**
+- `application.properties` läser hemligheter via miljövariabler (trygga dev-defaults).
+- `docker-compose.yaml`: Postgres parametriserad via `${DB_*}`; ActiveMQ-konsolen endast på `localhost`.
+- Actuator härdad: endast `health,info`; stängd `/env`; döljer configvärden.
+- `ci.yaml`: förenklat till build/test; **services (Postgres/ActiveMQ) borttagna och reserverade för framtida integrations-/e2e-tester i container-miljö.**.
+- `.env.example` tillagd; `.env` ignoreras i `.gitignore`.
+- `Dockerfile`: definierar `JAVA_TOOL_OPTIONS` innan expansion (eliminerar varningsmeddelande).
+
+**Effekt:**
+- Lägre risk: hemligheter ut ur koden; tydlig separation dev/CI/prod.
+- Minskad attackyta: ActiveMQ-konsolen endast lokalt.
+- Inga onödiga tjänster i CI samt snabbare pipeline.
