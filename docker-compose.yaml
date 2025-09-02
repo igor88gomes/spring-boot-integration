@@ -5,9 +5,9 @@ services:
     image: postgres:13
     container_name: postgres
     environment:
-      POSTGRES_USER: integration
-      POSTGRES_PASSWORD: integration_pass
-      POSTGRES_DB: integrationdb
+      POSTGRES_USER: ${DB_USER:-integration}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-integration_pass}
+      POSTGRES_DB: ${DB_NAME:-integrationdb}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -21,9 +21,9 @@ services:
   activemq:
     image: rmohr/activemq:5.15.9
     container_name: activemq
+    # Exponera endast webb-konsolen lokalt; applikationen når ActiveMQ-brokern via Docker-nätet (activemq:61616).
     ports:
-      - "61616:61616"
-      - "8161:8161"
+      - "127.0.0.1:8161:8161"
     networks:
       - integration-net
     healthcheck:
