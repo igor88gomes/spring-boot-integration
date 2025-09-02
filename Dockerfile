@@ -8,7 +8,7 @@ RUN mvn clean package -DskipTests
 FROM eclipse-temurin:17-jdk
 WORKDIR /app
 
-# Kör i UTC för konsekventa tider
+# Kör i UTC för konsekventa tider (JVM)
 ENV JAVA_TOOL_OPTIONS="${JAVA_TOOL_OPTIONS} -Duser.timezone=UTC"
 
 # Skapa loggmapp och ge skrivbehörighet
