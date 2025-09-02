@@ -171,3 +171,10 @@ för att applikationen skulle fungera fullt ut.
 - **Actuator:** `/actuator/info` visar nu `{ "queue": { "name": "<värde>" } }`.
 
 **Effekt:** följer 12-factor (konfig per miljö via env `APP_QUEUE_NAME`), inga ändringar i tester (default kvar), och tydlig synlighet både i logg och Actuator.
+
+#### 2025-09-02 — Tidszon standardiserad till UTC
+- **Genomfört:** JVM i UTC (`JAVA_TOOL_OPTIONS`), Logback i UTC, PostgreSQL i UTC; Compose utan lokal TZ.
+- **Verifierat:** JSON-loggar med `Z`-suffix, HTTP `Date` i **GMT**, databas `now()` visar **+00**.
+- **Notis:** Vid behov konvertera från UTC till användarens tidszon.
+
+- **Effekt:** Konsekventa tidsstämplar end-to-end, inga avvikelser vid skiftet mellan sommartid och normaltid, enklare korrelation och felsökning.
