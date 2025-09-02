@@ -109,7 +109,7 @@ curl http://localhost:8080/actuator/health | jq
 ]
 
 ```
-**Obs – validering:** Följande anrop ska ge **400**:
+**Obs: validering:** Följande anrop ska ge **400**:
 ```bash
 curl -i -X POST "http://localhost:8080/api/send?message=%20%20%20"  # URL-enkodat whitespace
 # alt:
@@ -221,7 +221,7 @@ SELECT * FROM message_entity;
 Avsluta: 
 
 ```sql
-`\q`
+\q
 ```
 
 ## Felsökning
@@ -250,6 +250,36 @@ Avsluta:
 
 > Obs: JavaDoc lagras som artifact i **14 dagar** och ingår inte i Docker-image (ignoreras i `.gitignore`).
 ---
+
+## Miljövariabler (valfritt)
+
+`.env` är **valfritt**. Om filen saknas körs stacken med interna dev-standarder.  
+Vill du anpassa konfigurationen, skapa en lokal `.env`.
+
+**Obs:** `.env.example` finns i repot som mall. Filer som börjar med punkt kan vara dolda. Visa dem t.ex. i Linux/macOS  med `ls -la` eller i Windows PowerShell med `ls -Force`.
+
+### Stödda nycklar (utan defaults)
+- `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`
+- `BROKER_URL`, `BROKER_USER`, `BROKER_PASS`
+- `APP_QUEUE_NAME`
+
+**Exempel – `.env` med platshållare (redigera värdena):**
+```dotenv
+# Database
+DB_HOST=<host>
+DB_PORT=<port>
+DB_NAME=<dbname>
+DB_USER=<user>
+DB_PASSWORD=<password>
+
+# ActiveMQ
+BROKER_URL=<tcp://host:port>
+BROKER_USER=<user>
+BROKER_PASS=<password>
+
+# App queue
+APP_QUEUE_NAME=<queue-name>
+```
 
 > **Obs:** Pipelines och artifacts är fullt fungerande i detta repo och kan granskas direkt via **Actions**-fliken.  
 > Vid automatiska tester i CI används en in-memory **H2**-databas istället för PostgreSQL för snabbare körning och enklare underhåll.  
