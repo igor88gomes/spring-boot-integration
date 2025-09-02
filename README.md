@@ -22,17 +22,26 @@
 
 ## Projektinformation
 
-Detta projekt visar en komplett integrationslösning inspirerad av ICC-mönster, utvecklad från grunden med 
-moderna teknologier och etablerade arkitekturmönster. Lösningen kombinerar asynkron kommunikation, 
-spårbarhet, testbarhet och fullständig automatisering genom CI/CD-pipelines och Docker-baserad 
+Detta projekt visar en komplett integrationslösning inspirerad av ICC-mönster, utvecklad från grunden med
+moderna teknologier och etablerade arkitekturmönster. Lösningen kombinerar asynkron kommunikation,
+spårbarhet, testbarhet och fullständig automatisering genom CI/CD-pipelines och Docker-baserad
 distribution.
 
-Applikationen är byggd med Java och Spring Boot 3, och använder ActiveMQ (JMS) för meddelandehantering, 
-PostgreSQL för datalagring samt Docker för containerisering. CI/CD-pipelines implementeras med GitHub 
-Actions och publicerar automatiskt applikationsimagen till Docker Hub.
+Applikationen är byggd med Java och Spring Boot 3, och använder ActiveMQ (JMS) för meddelandehantering,
+PostgreSQL för datalagring samt Docker för containerisering. GitHub Actions kör automatiska tester i CI
+med en in-memory H2-databas för snabb återkoppling i en isolerad testmiljö och publicerar därefter Docker-imagen
+till Docker Hub.
+
+### Teknisk sammanfattning
+
+- **12-factor (Config):** konfiguration och hemligheter via **miljövariabler**; `.env.example` för dev; **inga hemligheter i koden**.
+- **Backing services:** ActiveMQ (JMS) och PostgreSQL behandlas som utbytbara resurser (anslutning/credentials via env; t.ex. `BROKER_URL`, `DB_*`).
+- **Observerbarhet:** strukturerade JSON-loggar (Logback/Logstash), `/actuator/health`, tidsstämplar i **UTC** för spårbar korrelationsanalys.
 
 Loggningen är strukturerad i JSON-format med Logback och Logstash Encoder och skrivs både till konsol
 (stdout) och roterande loggfiler.
+
+### CI/CD
 
 Två separata pipelines hanterar applikationens CI/CD-flöde:
 
@@ -51,11 +60,6 @@ För flera detaljer om pipelinen, se:
 - [.github/workflows/ci.yaml](.github/workflows/ci.yaml)
 - [.github/workflows/docker-publish.yaml](.github/workflows/docker-publish.yaml)
 - [docs/USAGE.md#ci-artifacts](docs/USAGE.md#ci-artifacts)
-
-**Sammanfattning:** Lösningen körs i containers med asynkrona köer (ActiveMQ), persistens (PostgreSQL) och
-spårbar JSON-loggning. Lokalt startas stacken med **Docker Compose**, och **CI/CD i GitHub Actions**
-automatiserar bygg och publicering av applikationsimagen samt kör automatiska tester i CI med en 
-in-memory **H2**-databas för snabb återkoppling i en isolerad testmiljö.
 
 ---
 
