@@ -14,6 +14,11 @@ env:
   IMAGE_NAME: docker.io/igor88gomes/spring-boot-integration
   # GHCR-bild sätts senare per steg (owner i lowercase).
 
+# Concurrency: avbryt pågående körning på samma ref (sparar minuter och resurser)
+concurrency:
+  group: docker-publish-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   publish:
     name: Bygg, skanna och publicera
@@ -91,6 +96,10 @@ jobs:
           # Kandidattagg i GHCR – läsbar via kort SHA
           tags: ghcr.io/${{ steps.ghcr_owner.outputs.owner_lc }}/spring-boot-integration:candidate-${{ steps.vars.outputs.short_sha }}
           labels: ${{ steps.meta.outputs.labels }}
+          # GHCR-retention för kandidat (auto-cleanup)
+          annotations: |
+            org.opencontainers.image.ref.name=candidate
+            ghcr.io/retention-days=14
           # GitHub cache för snabbare inkrementella builds
           cache-from: type=gha
           cache-to: type=gha,mode=max
