@@ -12,6 +12,7 @@ on:
 env:
   # Imagenamn för publicering till Docker Hub (publik)
   IMAGE_NAME: docker.io/igor88gomes/spring-boot-integration
+  # GHCR-bild sätts senare per steg (owner i lowercase).
 
 jobs:
   publish:
@@ -28,13 +29,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Buildx: behåll alltid – krävs för cache (GHA), SBOM/provenance och promotion via `imagetools`.
-      # Buildx: cache (GHA), SBOM/provenance, imagetools. Bra för alla builds.
+      # Buildx för multi-arch builds
       - name: Ställ in Buildx
         uses: docker/setup-buildx-action@v3
 
-      # QEMU (valfritt): multi-arch (amd64+arm64, inkl. macOS M1/M2). Långsammare.
-      # Ta bort detta steg OCH `platforms:` för snabbare amd64-only.
+      # (Valfritt) Multi-arch: QEMU för amd64/arm64
       - name: Setup QEMU
         uses: docker/setup-qemu-action@v3
 
@@ -43,12 +42,12 @@ jobs:
         id: vars
         shell: bash
         run: echo "short_sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
-          
-          # Vars: GHCR owner i lowercase (krävs av GHCR)
-               - name: Vars (GHCR owner lowercase)
-               id: ghcr_owner
-               shell: bash
-               run: echo "owner_lc=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+
+      # Vars (GHCR owner lowercase) – krävs av GHCR
+      - name: Vars (GHCR owner lowercase)
+        id: ghcr_owner
+        shell: bash
+        run: echo "owner_lc=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
 
       # Docker-metadata: etiketter (OCI) + håll endast :latest som publik tagg
       - name: Metadata för Docker-image
