@@ -2,7 +2,7 @@
 name: Publish Docker image
 
 on:
-  # Publicera ENDAST när kod mergas/pushas till main
+  # Publicera ENDAST när kod pushas till main
   push:
     branches:
       - main
@@ -10,66 +10,106 @@ on:
   # workflow_dispatch:
 
 env:
-  # Imagenamn för publicering till Docker Hub (standard för detta repo)
+  # Imagenamn för publicering till Docker Hub (publik)
   IMAGE_NAME: docker.io/igor88gomes/spring-boot-integration
+  # Imagenamn för kandidat i GHCR (privat). Skapas automatiskt vid första pushen.
+  GHCR_IMAGE: ghcr.io/${{ toLower(github.repository_owner) }}/spring-boot-integration
 
 jobs:
-  build-and-push:
-    if: github.ref == 'refs/heads/main'
+  publish:
+    name: Bygg, skanna och publicera
     runs-on: ubuntu-latest
-    # Aktivera miljö "production" i GitHub → Environments om du vill kräva manuell godkännande
-    # environment: production
+
+    # Krävs för att kunna pusha till GHCR med GITHUB_TOKEN
+    permissions:
+      contents: read
+      packages: write
 
     steps:
       # Checka ut koden
-      - name: Checka ut koden
+      - name: Checkout
         uses: actions/checkout@v4
 
-      # Sätt upp JDK 17 för Maven-build (cache av lokala maven-dependencies)
-      - name: Sätt upp JDK 17 (för Maven)
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 17
-          cache: maven
-
-      # Bygg applikationen för att producera JAR (tester redan körda i CI, så vi skippar här)
-      - name: Bygg applikationen (skippa tester i CD)
-        run: mvn -B -DskipTests package
-
-      # Ta fram kort SHA (för spårbar tag)
-      - name: Hämta kort SHA för taggning
-        id: vars
-        run: echo "short_sha=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
-
-      # Logga in i Docker Hub med hemligheter från repo settings
-      - name: Logga in på Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_ACCESS_TOKEN }}
-
-      # Buildx krävs för cache och ev. multi-arch (bra att ha även om du bygger amd64)
-      - name: Sätt upp Buildx
+      # Buildx: behåll alltid – krävs för cache (GHA), SBOM/provenance och promotion via `imagetools`.
+      # Buildx: cache (GHA), SBOM/provenance, imagetools. Bra för alla builds.
+      - name: Ställ in Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Metadata/labels (för tydliga image-labels)
+      # QEMU (valfritt): multi-arch (amd64+arm64, inkl. macOS M1/M2). Långsammare.
+      # Ta bort detta steg OCH `platforms:` för snabbare amd64-only.
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@v3
+
+      # Vars: kort commit-SHA (7 tecken) för taggnamn/loggar
+      - name: Vars (kort SHA)
+        id: vars
+        shell: bash
+        run: echo "short_sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      # Docker-metadata: etiketter (OCI) + håll endast :latest som publik tagg
       - name: Metadata för Docker-image
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest
+          labels: |
+            org.opencontainers.image.title=spring-boot-integration
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
 
-      # Bygg och pusha: två taggar → latest (enkel konsumtion) + kort SHA (spårbarhet)
-      - name: Bygg och pusha (latest + kort SHA)
+      # Logga in i Docker Hub (publikt register)
+      - name: Logga in i Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_ACCESS_TOKEN }}
+
+      # Logga in i GHCR (privat staging)
+      - name: Logga in i GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      # Bygg & pusha KANDIDAT till GHCR (privat) + bevara digest
+      - name: Bygg & pusha kandidat (GHCR, privat)
+        id: build
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
-          tags: |
-            ${{ env.IMAGE_NAME }}:latest
-            ${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.short_sha }}
+          # Multi-arch (kan tas bort om du inte behöver arm64)
+          platforms: linux/amd64,linux/arm64
+          # Kandidattagg i GHCR – läsbar via kort SHA
+          tags: ${{ env.GHCR_IMAGE }}:candidate-${{ steps.vars.outputs.short_sha }}
           labels: ${{ steps.meta.outputs.labels }}
           # GitHub cache för snabbare inkrementella builds
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          # Supply chain: attestation + SBOM
+          provenance: true
+          sbom: true
+
+      # Sårbarhetsscan av kandidaten (stoppar om CRITICAL/HIGH med fix)
+      - name: Trivy scan (kandidat)
+        uses: aquasecurity/trivy-action@v0.33.0
+        with:
+          # Skanna EXAKT det som byggdes (via digest)
+          image-ref: ${{ env.GHCR_IMAGE }}@${{ steps.build.outputs.digest }}
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+          ignore-unfixed: true
+          format: 'table'
+          timeout: '5m'
+          exit-code: '1'   # pipeline stoppar vid blockerande CVEs
+
+      # Främja EXAKT samma artefakt (digest) till :latest i Docker Hub
+      - name: Främja kandidat till :latest (Docker Hub)
+        run: |
+          docker buildx imagetools create \
+            --tag ${{ env.IMAGE_NAME }}:latest \
+            ${{ env.GHCR_IMAGE }}@${{ steps.build.outputs.digest }}
