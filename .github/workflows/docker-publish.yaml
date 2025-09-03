@@ -99,7 +99,7 @@ jobs:
 
       # Sårbarhetsscan av kandidaten (stoppar om CRITICAL/HIGH med fix)
       - name: Trivy scan (kandidat)
-        uses: aquasecurity/trivy-action@v0.33.0
+        uses: aquasecurity/trivy-action@0.33.0
         with:
           # Skanna EXAKT det som byggdes (via digest)
           image-ref: ghcr.io/${{ steps.ghcr_owner.outputs.owner_lc }}/spring-boot-integration@${{ steps.build.outputs.digest }}
