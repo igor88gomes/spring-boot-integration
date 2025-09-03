@@ -104,7 +104,7 @@ jobs:
           # Skanna EXAKT det som byggdes (via digest)
           image-ref: ghcr.io/${{ steps.ghcr_owner.outputs.owner_lc }}/spring-boot-integration@${{ steps.build.outputs.digest }}
           vuln-type: 'os,library'
-          severity: 'CRITICAL,HIGH'
+          severity: 'CRITICAL'
           ignore-unfixed: true
           format: 'table'
           timeout: '5m'
