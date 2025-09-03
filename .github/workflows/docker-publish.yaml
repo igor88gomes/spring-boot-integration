@@ -12,8 +12,6 @@ on:
 env:
   # Imagenamn för publicering till Docker Hub (publik)
   IMAGE_NAME: docker.io/igor88gomes/spring-boot-integration
-  # Imagenamn för kandidat i GHCR (privat). Skapas automatiskt vid första pushen.
-  GHCR_IMAGE: ghcr.io/${{ toLower(github.repository_owner) }}/spring-boot-integration
 
 jobs:
   publish:
@@ -45,6 +43,12 @@ jobs:
         id: vars
         shell: bash
         run: echo "short_sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          
+          # Vars: GHCR owner i lowercase (krävs av GHCR)
+               - name: Vars (GHCR owner lowercase)
+               id: ghcr_owner
+               shell: bash
+               run: echo "owner_lc=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
 
       # Docker-metadata: etiketter (OCI) + håll endast :latest som publik tagg
       - name: Metadata för Docker-image
@@ -85,7 +89,7 @@ jobs:
           # Multi-arch (kan tas bort om du inte behöver arm64)
           platforms: linux/amd64,linux/arm64
           # Kandidattagg i GHCR – läsbar via kort SHA
-          tags: ${{ env.GHCR_IMAGE }}:candidate-${{ steps.vars.outputs.short_sha }}
+          tags: ghcr.io/${{ steps.ghcr_owner.outputs.owner_lc }}/spring-boot-integration:candidate-${{ steps.vars.outputs.short_sha }}
           labels: ${{ steps.meta.outputs.labels }}
           # GitHub cache för snabbare inkrementella builds
           cache-from: type=gha
@@ -99,7 +103,7 @@ jobs:
         uses: aquasecurity/trivy-action@v0.33.0
         with:
           # Skanna EXAKT det som byggdes (via digest)
-          image-ref: ${{ env.GHCR_IMAGE }}@${{ steps.build.outputs.digest }}
+          image-ref: ghcr.io/${{ steps.ghcr_owner.outputs.owner_lc }}/spring-boot-integration@${{ steps.build.outputs.digest }}
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
           ignore-unfixed: true
@@ -112,4 +116,4 @@ jobs:
         run: |
           docker buildx imagetools create \
             --tag ${{ env.IMAGE_NAME }}:latest \
-            ${{ env.GHCR_IMAGE }}@${{ steps.build.outputs.digest }}
+            ghcr.io/${{ steps.ghcr_owner.outputs.owner_lc }}/spring-boot-integration@${{ steps.build.outputs.digest }}
