@@ -23,6 +23,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      security-events: write
 
     steps:
       # Checka ut koden
@@ -109,6 +110,25 @@ jobs:
           format: 'table'
           timeout: '5m'
           exit-code: '1'   # pipeline stoppar vid blockerande CVEs
+
+      # Trivy SARIF-rapport (för Security/Code scanning)
+      - name: Trivy SARIF (report)
+        if: always()
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@0.33.0
+        with:
+          image-ref: ghcr.io/${{ steps.ghcr_owner.outputs.owner_lc }}/spring-boot-integration@${{ steps.build.outputs.digest }}
+          scanners: 'vuln'
+          severity: 'CRITICAL,HIGH'
+          ignore-unfixed: true
+          format: 'sarif'
+          output: 'trivy.sarif'
+
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy.sarif
 
       # Främja EXAKT samma artefakt (digest) till :latest i Docker Hub
       - name: Främja kandidat till :latest (Docker Hub)
