@@ -178,7 +178,7 @@ för att applikationen skulle fungera fullt ut.
 
 **Effekt:** Konsekventa tidsstämplar end-to-end, inga avvikelser vid skiftet mellan sommartid och normaltid, enklare korrelation och felsökning.
 
-## 2025-09-02 — Konfiguration & säkerhet städad
+#### 2025-09-02 — Konfiguration & säkerhet + CI-pipeline (förfining)
 
 **Genomfört:**
 - `application.properties` läser hemligheter via miljövariabler (trygga dev-defaults).
