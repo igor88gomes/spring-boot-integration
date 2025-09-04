@@ -1,7 +1,10 @@
 # Spring Boot Integration – ICC Demo  
 
-[![CI – main](https://github.com/IgorGomes01/spring-boot-integration/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/IgorGomes01/spring-boot-integration/actions/workflows/ci.yaml)
-[![CD – main](https://github.com/IgorGomes01/spring-boot-integration/actions/workflows/docker-publish.yaml/badge.svg?branch=main)](https://github.com/IgorGomes01/spring-boot-integration/actions/workflows/docker-publish.yaml)
+[![CI – main](https://github.com/igor88gomes/spring-boot-integration/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/igor88gomes/spring-boot-integration/actions/workflows/ci.yaml)
+[![CD – main](https://github.com/igor88gomes/spring-boot-integration/actions/workflows/docker-publish.yaml/badge.svg?branch=main)](https://github.com/igor88gomes/spring-boot-integration/actions/workflows/docker-publish.yaml)
+[![Code scanning](https://img.shields.io/badge/Code%20scanning-enabled-blue)](https://github.com/igor88gomes/spring-boot-integration/security/code-scanning)
+[![SBOM](https://img.shields.io/badge/SBOM-CycloneDX%20%2F%20attestations-blue)](docs/USAGE.md#sbom--attestation)
+[![Multi-arch](https://img.shields.io/badge/multi--arch-amd64%20%7C%20arm64-blue)](docs/USAGE.md#verifiera-multi-arch-amd64--arm64)
 [![Docker Hub](https://img.shields.io/badge/Docker%20Hub-image-blue)](https://hub.docker.com/r/igor88gomes/spring-boot-integration/tags)
 
 > Av Igor Gomes — DevOps Engineer
@@ -28,37 +31,40 @@ spårbarhet, testbarhet och fullständig automatisering genom CI/CD-pipelines oc
 distribution.
 
 Applikationen är byggd med Java och Spring Boot 3, och använder ActiveMQ (JMS) för meddelandehantering,
-PostgreSQL för datalagring samt Docker för containerisering. GitHub Actions kör automatiska tester i CI
-med en in-memory H2-databas för snabb återkoppling i en isolerad testmiljö och publicerar därefter Docker-imagen
-till Docker Hub.
+PostgreSQL för datalagring samt Docker för containerisering. GitHub Actions kör automatiska tester i CI (H2) och 
+**pushar först en candidate image till GHCR (privat)**; efter **Trivy quality gate** (**CRITICAL blockerar**) **promoteras med samma digest** 
+till Docker Hub (`:latest`).
 
 ### Teknisk sammanfattning
 
 - **12-factor (Config):** konfiguration och hemligheter via **miljövariabler**; `.env.example` för dev; **inga hemligheter i koden**.
-- **Backing services:** ActiveMQ (JMS) och PostgreSQL behandlas som utbytbara resurser (anslutning/credentials via env; t.ex. `BROKER_URL`, `DB_*`).
-- **Observerbarhet:** strukturerade JSON-loggar (Logback/Logstash), `/actuator/health`, tidsstämplar i **UTC** för spårbar korrelationsanalys.
+- **Säkerhet (översikt):** env utan hemligheter; **Trivy quality gate före publicering**; **SBOM + attestations** och **OCI-etiketter** för supply-chain-spårbarhet.
+- **Backing services:** ActiveMQ (JMS) och PostgreSQL behandlas som utbytbara resurser (t.ex. `BROKER_URL`, `DB_*`).
+- **Observerbarhet:** **JSON-loggar** (Logback/Logstash), **MDC/korrelations-ID**, **/actuator/health**, tidsstämplar i **UTC** för spårbar analys.
 
-Loggningen är strukturerad i JSON-format med Logback och Logstash Encoder och skrivs både till konsol
-(stdout) och roterande loggfiler.
+## CI/CD i korthet
 
-### CI/CD
+- **(CI)** `ci.yaml`
+    - Validerar och bygger (Maven)
+    - Testar med H2 (isolerade tester)
+    - Publicerar **JaCoCo** som artefakt (Actions)
+    - Genererar **JavaDoc** (artefakt)
 
-Två separata pipelines hanterar applikationens CI/CD-flöde:
-
-- **(CI)** `ci.yaml` validerar, bygger (Maven), testar (med H2 in-memory databas i CI-miljö för 
-  enkelhet och isolerade tester) och genererar kodtäckningsrapport (JaCoCo) vid ändringar som pushas
-  till brancherna `main` och `test`. JaCoCo-rapporten publiceras som **artefakt** i varje CI-körning
-  och kan laddas ner från Actions-sidan. På `main` genereras även JavaDoc och publiceras som artefakt.
-
-- **(CD)** `docker-publish.yaml` bygger och publicerar applikationsimagen till Docker Hub vid push till 
-  `main` *(taggar `latest` och `<commit-SHA>` för spårbarhet)*.
+- **(CD)** `docker-publish.yaml`
+    - Bygger **multi-arch** (`linux/amd64`, `linux/arm64`)
+    - Pushar **candidate image** till **GHCR (privat)**
+    - Kör **Trivy quality gate** — **CRITICAL blockerar**, **HIGH** → **SARIF** i *Security → Code scanning*
+    - **Promoterar samma digest** till Docker Hub `:latest`
+    - Sätter **OCI-etiketter** (revision/created/source) + **SBOM/attestation**
+    - **Concurrency-skydd** avbryter parallella körningar
+    - **Retention:** candidate image i GHCR rensas efter **14 dagar**
 
 För en översiktlig bild av pipelinen/pipelineflödet, se **Bild 2**. 
 
 För flera detaljer om pipelinen, se:
 
-- [.github/workflows/ci.yaml](.github/workflows/ci.yaml)
-- [.github/workflows/docker-publish.yaml](.github/workflows/docker-publish.yaml)
+- [Bygg / CI & dokumentation (GitHub Actions)](#bygg--ci--dokumentation-github-actions)
+- [Distribution (CD) (GitHub Actions)](#distribution-cd-github-actions)
 - [docs/USAGE.md#ci-artifacts](docs/USAGE.md#ci-artifacts)
 
 ---
@@ -166,64 +172,97 @@ Se [docs/TESTS.md](docs/TESTS.md) för fler detaljer.
 
 ## Funktionalitet
 
-- Exponerar REST API med Spring Boot
-- Hanterar asynkron meddelandeöverföring med ActiveMQ (JMS)
-- Lagrar persistent data i PostgreSQL via JPA
-- Loggar i JSON-format med Logback + MDC
-- Kör enhetstester med JUnit 5 och Mockito
-- Kör automatiska tester i CI-miljö med H2-databas
-- Körs i containeriserad miljö via Docker Compose
+### Applikation
+- Exponerar **REST-API** (Spring Boot)
+- Hanterar **asynkron meddelandeöverföring** via ActiveMQ (JMS)
+- Lagrar **persistent data** i PostgreSQL (JPA)
+- **Korrelation & observabilitet:** JSON-loggar (Logback + MDC), korrelations-ID, **/actuator/health**
+- **Enhetstester** med JUnit 5 och Mockito
+- Körs **containeriserat** 
+- **Automatiska tester** i CI-miljö med **H2-databas**
+
+### Plattform / DevOps
+- **Gated CD** (GHCR → **Trivy**; CRITICAL blockerar) med **promotion per digest** till Docker Hub `:latest`
+- **Multi-arch builds** (`linux/amd64`, `linux/arm64`)
+- **Supply-chain metadata:** **SBOM + attestations**, **OCI-etiketter** (revision/created/source)
+- **Code scanning** i GitHub (SARIF)
+- **Concurrency-skydd** och **retention** av **candidate images** (14 dagar)
 
 ## Teknologier
 
+### Applikation
 | Teknologi         | Användning                                    |
 |-------------------|-----------------------------------------------|
-| Spring Boot 3.3.2 | Huvudramverk                                  |
+| Spring Boot 3.3.x | Huvudramverk                                  |
 | ActiveMQ          | Meddelandekö (JMS)                            |
-| H2 Database       | In-memory databas för automatiska tester i CI |
 | PostgreSQL        | Databashanterare via JPA (containermiljö)     |
+| H2 Database       | In-memory databas för tester i CI             |
 | Spring Data JPA   | Hantering av entiteter och datalagring        |
 | Logback + MDC     | Strukturerad loggning i JSON-format           |
 | JUnit + Mockito   | Enhetstester                                  |
+
+### Plattform / DevOps
+| Teknologi / Tjänst        | Användning                                             |
+|---------------------------|--------------------------------------------------------|
+| GitHub Actions            | CI/CD-automation                                       |
+| Docker Engine             | Container-runtime (lokalt och i build-pipeline)        |
+| Docker Compose            | Orkestrering lokalt (app, ActiveMQ, PostgreSQL)        |
+| Docker Buildx / QEMU      | **Multi-arch builds** (amd64/arm64)                    |
+| Trivy                     | **Sårbarhetsskanning** + **SARIF** (Code scanning)     |
+| SBOM / Attestations       | Supply-chain spårbarhet i build-steget                 |
+| OCI-etiketter             | `revision`, `created`, `source` (härkomst/metadata)    |
+| GHCR / Docker Hub         | Candidate image → **promotion per digest** (`:latest`) |
+| Concurrency / Retention   | Stoppar parallella körningar; **14 dagar** i GHCR      |
 
 ## Körning (Runtime)
 
 **Hela stacken körs containeriserad med Docker Compose** (stöd för Podman Compose):
     
-- `integration-app` – applikationen (image: `igor88gomes/spring-boot-integration:latest`, **byggs och
-   pushas av CD-pipelinen**)
+- `integration-app` – applikationen (image: `igor88gomes/spring-boot-integration:latest`, **byggs och pushas av CD-pipelinen**)
 - `activemq` – ActiveMQ (JMS)
 - `postgres` – PostgreSQL
-**Java 17 ingår i applikationsimagen; inget lokalt JDK krävs.**
+
+→ > ** Java 17 ingår i applikationsimagen; inget lokalt JDK krävs.**
 
 ### Bygg / CI & dokumentation (GitHub Actions)
 
 - **Workflow:** `.github/workflows/ci.yaml`
 - **Trigger:** push/PR till `main` och `test`
-- **Steg:** Maven-bygge och tester
-- **Artefakter:** `jacoco-report` (main/test), `javadoc` (endast `main`)
+- **Steg:**
+    - **Steg 1 – Checkout & JDK 17:** checka ut källkod och konfigurera Java.
+    - **Steg 2 – Bygg & tester (Maven/H2):** kör `mvn verify` med H2 för isolerade tester.
+    - **Steg 3 – Kodtäckning (JaCoCo):** generera rapport och ladda upp som artefakt.
+    - **Steg 4 – JavaDoc (endast `main`):** generera och ladda upp som artefakt.
+- **Artefakter:** `jacoco-report` (main/test, **retention 14 dagar**), `javadoc` (endast `main`, **14 dagar**)
 
 ### Distribution (CD) (GitHub Actions)
 
 - **Workflow:** `.github/workflows/docker-publish.yaml`
-- **Trigger:** push till `main`  *(ej PR)*
-- **Publicering:** bygger och publicerar applikationsimagen till Docker Hub
-- **Taggar:** `latest` + `<commit-SHA>`
-- **Register:** `igor88gomes/spring-boot-integration`   
-*(Standardtaggen är `latest` om inget anges; varje build taggas även med `<commit-SHA>` för spårbarhet.)*
+- **Trigger:** push till `main` *(ej PR)*
+- **Publiceringsflöde:**
+- **Steg 1 – Candidate image (privat):** Buildx bygger **multi-arch** (`linux/amd64,linux/arm64`) och pushar **candidate image** till **GHCR (privat)** med rika **OCI‑etiketter**.
+- **Steg 2 – Trivy quality gate:** skannar candidate image. **CRITICAL** blockerar pipelinen. **HIGH** rapporteras som **SARIF** till **Security → Code scanning**.
+- **Steg 3 – Promotion (reproducerbar):** Om spärren passerar, **promoteras exakt samma digest** till **Docker Hub** som `:latest`.
+- **Concurrency‑skydd:** `concurrency.group=docker-publish-${{ github.ref }}` + `cancel-in-progress: true` eliminerar parallella dubbletter.
+- **Retention:** candidate images i GHCR märks med `org.opencontainers.image.ref.name=candidate` och `ghcr.io/retention-days=14` för automatisk rensning.
+- **SBOM & attestation:** genereras i build‑steget för förbättrad supply‑chain‑spårbarhet.
 
 ## Projektstruktur
 
 ```text
 spring-boot-integration/
 │
-├── src/                    # Java-källkod & tester
-├── pom.xml                 # Maven-konfiguration
-├── Dockerfile              # Bygg applikationens Docker-image
-├── docker-compose.yaml     # Lokalt orkestreringsstöd (app, ActiveMQ, PostgreSQL)
 ├── .github/workflows/      # CI/CD-pipelines (ci.yaml, docker-publish.yaml)
-└── docs/                   # Dokumentation & bilder
-
+├── .gitignore              # Ignorerade filer (t.ex. target/, .env)
+├── .dockerignore           # Exkluderar onödiga filer från Docker build-context
+├── .env.example            # Exempel på miljövariabler (inga hemligheter i koden)
+├── docs/                   # Dokumentation & bilder (diagram i docs/images/)
+├── logs/                   # Lokala loggar (skapas vid körning, ej versionerad)
+├── src/                    # Källkod & tester (main/ och test/)
+├── pom.xml                 # Maven-konfiguration (beroenden/plugins)
+├── Dockerfile              # Bygger applikationsimagen 
+├── docker-compose.yaml     # Lokalt orkestreringsstöd (app, ActiveMQ, PostgreSQL)
+└── README.md               # Projektöversikt
 ```
 
 ## Relaterade dokument
