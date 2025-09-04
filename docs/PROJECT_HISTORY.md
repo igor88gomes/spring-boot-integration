@@ -200,23 +200,22 @@ för att applikationen skulle fungera fullt ut.
 - Minskad attackyta: ActiveMQ-konsolen endast lokalt.
 - Inga onödiga tjänster i CI samt snabbare pipeline.
 
-#### 2025-09-03 — Supply chain & gated CD, säkerhetsskanning och multi-arch
+#### 2025-09-03 — Supply chain & gated CD, sårbarhetsskanning och multi-arch
 
 **Genomfört:**
-- **Gated release:** kandidat pushas till **GHCR (privat)** → **Trivy-scan** (**CRITICAL** blockerar; **HIGH** rapporteras) → **promotion med exakt digest** till Docker Hub `:latest`.
+- **Gated release:** **candidate image** pushas till **GHCR (privat)** → **Trivy quality gate** (**CRITICAL** blockerar; **HIGH** rapporteras) → **promotion med samma digest** till Docker Hub `:latest`.
 - **Multi-arch build:** `linux/amd64` + `linux/arm64` via Buildx/QEMU (behåll om kompatibilitet med Apple Silicon är önskad).
-- **Supply chain:** **SBOM** och **proveniens/attestation** aktiverat i build-steget.
+- **Supply chain:** **SBOM + attestations** aktiverat i build-steget.
 - **OCI-etiketter:** `org.opencontainers.image.revision`, `created`, `source`, m.fl.
 - **Concurrency:** `concurrency.group=docker-publish-${{ github.ref }}` med `cancel-in-progress: true` för att undvika parallella dubbletter vid täta pushes.
-- **Retention för kandidater (GHCR):** annotations `org.opencontainers.image.ref.name=candidate` och `ghcr.io/retention-days=14`.
+- **Retention för candidate images (GHCR):** annotations `org.opencontainers.image.ref.name=candidate` och `ghcr.io/retention-days=14`.
 - **Säkerhetsrapport (SARIF):** Trivy publicerar resultat till **Security → Code scanning**.
-- **GHCR-väg (ägarnamn):** normaliserat till gemener (lowercase) i workflow; toLower()-funktionen togs bort (stöds ej i den nyckeln).
+- **GHCR-sökväg (ägarnamn):** normaliserad till gemener (lowercase) i workflow; `toLower()` togs bort (stöds ej i den nyckeln).
 - **Beroenden:** uppgradering av **tomcat-embed** till **10.1.35** för att åtgärda **CVE-2025-24813**.
 
 **Effekt:**
-- Inget blir offentligt `:latest` förrän image passerar säkerhetsscanningen (minskar exponeringsfönster).
-- **Reproducerbar promotion** tack vare digest (samma artefakt från GHCR → Docker Hub).
+- Inget blir offentligt `:latest` förrän imagen passerar **sårbarhetsskanningen** (minskar exponeringsfönster).
+- **Reproducerbar promotion** tack vare **digest** (samma artefakt från GHCR → Docker Hub).
 - Bättre **kompatibilitet** (x86_64 och Apple Silicon) med en och samma tagg.
-- **Automatisk städning** av kandidatbilder i GHCR → lägre lagringskostnad/brus.
-- **Synlig säkerhetsstatus** direkt i GitHub under *Code scanning*, plus SBOM/attestation för spårbarhet.
-
+- **Automatisk städning** av **candidate images** i GHCR → lägre lagringskostnad/brus.
+- **Synlig säkerhetsstatus** direkt i GitHub under *Code scanning*, plus **SBOM/attestations** för spårbarhet.
