@@ -14,7 +14,7 @@
        alt="Arkitekturöversikt – Spring Boot, ActiveMQ och PostgreSQL"
        width="900">
 </p>
-<p align="center"><em><strong>Bild 1.</strong> Arkitekturöversikt – Spring Boot, ActiveMQ och PostgreSQL.</em></p>
+<p align="center"><em><strong>Bild 1.</strong> Arkitekturöversikt – Spring Boot, ActiveMQ och PostgreSQL. <strong>Arkitekturstil:</strong> modulär monolit (meddelandebaserad via JMS).</em></p>
 
 <p align="center">
   <img src="docs/images/cicd-pipeline-diagram.png"
