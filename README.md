@@ -57,7 +57,6 @@ till Docker Hub (`:latest`).
     - **Promoterar samma digest** till Docker Hub `:latest`
     - Sätter **OCI-etiketter** (revision/created/source) + **SBOM/attestation**
     - **Concurrency-skydd** avbryter parallella körningar
-    - **Retention:** candidate image i GHCR rensas efter **14 dagar**
 
 För en översiktlig bild av pipelinen/pipelineflödet, se **Bild 2**. 
 
