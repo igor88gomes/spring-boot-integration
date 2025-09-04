@@ -99,50 +99,57 @@ för att applikationen skulle fungera fullt ut.
 ### Nästa steg (liten insats → stor nytta)
 
 - **Kontrakttester för REST + JMS-header (Spring Cloud Contract/Pact)**  
-  Verifiera:
-    - `POST /api/send` → **400** vid tomt/blankt `message`; **200** annars.
-    - Producer sätter **JMS-header** `messageId` när **MDC** har värde; sätter **inte** annars.  
-      **Effekt:** bryter CI om kontraktet ändras av misstag.
+  *Syfte:* göra dagens beteende bindande (skydd mot regressioner).
+
+    - `POST /api/send` — två kontrakt:
+        - **Ogiltigt:** tomt/blankt `message` ⇒ **400**.
+        - **Giltigt:** `message` med innehåll ⇒ **200**.
+
+    - Producer — headerkontrakt:
+        - Sätt JMS-header **`messageId`** när **MDC** har värde.
+        - Sätt **inte** headern när **MDC** saknas.
+
+**Effekt:** om beteendet ändras av misstag faller kontraktstesterna och pipelinen stoppar tills kontraktet uppdateras med avsikt.
 
 - **Flyway för databasversionering**  
   Introducera `V1__init.sql` för tabellen och lås schemautveckling via migrationer.  
-  **Effekt:** spårbar databas-historik och reproducerbara deployer.
+  
+**Effekt:** spårbar databas-historik och reproducerbara deployer.
 
 - **Säkerhet & kryptering – baslinje (rekommenderad nu)**
     - **TLS mot ActiveMQ:** använd `ssl://` (t.ex. port **61617**) och servercertifikat.
-    - **Logghygien:** logga inte meddelandekroppen i **INFO**; logga `messageId` + status.  
-    - **Effekt:** skyddar trafik i transit, minskar läckagerisk i loggar, noll intrång i payload.
+    - **Logghygien:** logga inte meddelandekroppen i **INFO**; logga `messageId` + status.
+
+**Effekt:** skyddar trafik i transit, minskar läckagerisk i loggar, noll intrång i payload.
 
 ### Medel sikt
 
 - **CI-jobb med Testcontainers (PostgreSQL + ActiveMQ/Artemis)**  
-  Kör integrationsflödet end‑to‑end i pipeline utan externa beroenden.
+  Kör integrationsflödet end-to-end i pipeline utan externa beroenden.
 
 - **Observabilitet (grund)**  
-  **Micrometer/Prometheus** + utökade **Actuator**‑endpoints (dev/test).  
-  **Effekt:** metrics för kölatens, fel, throughput.
+- **Micrometer/Prometheus** + utökade **Actuator**-endpoints (dev/test).  
 
-- **Konfiguration & säkerhet**  
-  Standardisera hemligheter via env/Secrets; begränsa Actuator i prod (endast `health`).
+**Effekt:** metrics för kölatens, fel, throughput.
 
 ### Längre sikt
 
 - **Central felhantering**  
-  `@ControllerAdvice` + standardiserad felmodell (JSON) och korrelations‑ID i svar.
+  `@ControllerAdvice` + standardiserad felmodell (JSON) och korrelations-ID i svar.
 
 - **OpenAPI/Swagger**  
-  Generera och publicera API‑spec för konsumenter.
+  Generera och publicera API-spec för konsumenter.
 
 - **Helm/Argo CD**  
   Deploy till Kubernetes/OpenShift med deklarativ drift.
 
 - **Kryptering av payload**  
-  End‑to‑end‑kryptering med **AES‑GCM**.
-    - **Producer:** kryptera message → `byte[]` + GCM‑tag.
+  End-to-end-kryptering med **AES-GCM**.
+    - **Producer:** kryptera message → `byte[]` + GCM-tag.
     - **Consumer:** dekryptera och processa.
     - **Nyckelhantering:** lagra nyckel i t.ex. keystore eller KMS; plan för rotation.
     - **Header:** lämna `messageId` okrypterad för korrelation.  
-      **Trade‑off:** högre komplexitet (nycklar, rotation, felhantering) – görs bara om kravet finns.
+      **Trade-off:** högre komplexitet (nycklar, rotation, felhantering) – görs bara om kravet finns.
 
 ### Kontinuerliga förbättringar (löpande)
 
@@ -192,3 +199,24 @@ för att applikationen skulle fungera fullt ut.
 - Lägre risk: hemligheter ut ur koden; tydlig separation dev/CI/prod.
 - Minskad attackyta: ActiveMQ-konsolen endast lokalt.
 - Inga onödiga tjänster i CI samt snabbare pipeline.
+
+#### 2025-09-03 — Supply chain & gated CD, säkerhetsskanning och multi-arch
+
+**Genomfört:**
+- **Gated release:** kandidat pushas till **GHCR (privat)** → **Trivy-scan** (**CRITICAL** blockerar; **HIGH** rapporteras) → **promotion med exakt digest** till Docker Hub `:latest`.
+- **Multi-arch build:** `linux/amd64` + `linux/arm64` via Buildx/QEMU (behåll om kompatibilitet med Apple Silicon är önskad).
+- **Supply chain:** **SBOM** och **proveniens/attestation** aktiverat i build-steget.
+- **OCI-etiketter:** `org.opencontainers.image.revision`, `created`, `source`, m.fl.
+- **Concurrency:** `concurrency.group=docker-publish-${{ github.ref }}` med `cancel-in-progress: true` för att undvika parallella dubbletter vid täta pushes.
+- **Retention för kandidater (GHCR):** annotations `org.opencontainers.image.ref.name=candidate` och `ghcr.io/retention-days=14`.
+- **Säkerhetsrapport (SARIF):** Trivy publicerar resultat till **Security → Code scanning**.
+- **GHCR-väg (ägarnamn):** normaliserat till gemener (lowercase) i workflow; toLower()-funktionen togs bort (stöds ej i den nyckeln).
+- **Beroenden:** uppgradering av **tomcat-embed** till **10.1.35** för att åtgärda **CVE-2025-24813**.
+
+**Effekt:**
+- Inget blir offentligt `:latest` förrän image passerar säkerhetsscanningen (minskar exponeringsfönster).
+- **Reproducerbar promotion** tack vare digest (samma artefakt från GHCR → Docker Hub).
+- Bättre **kompatibilitet** (x86_64 och Apple Silicon) med en och samma tagg.
+- **Automatisk städning** av kandidatbilder i GHCR → lägre lagringskostnad/brus.
+- **Synlig säkerhetsstatus** direkt i GitHub under *Code scanning*, plus SBOM/attestation för spårbarhet.
+
