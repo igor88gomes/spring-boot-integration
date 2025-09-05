@@ -174,28 +174,34 @@ jobs:
         if: always()
         run: mkdir -p attestations
 
-      # Hämta provenance/attestation (in-toto)
+      # Hämta provenance/attestation (in-toto) för samma bild.
+      # Försök via kandidat-taggen, och samla även per-plattform via manifestets child-digests.
+      # Skriv en not om ingen attestation hittas (så artefakten inte blir tom).
       - name: Hämta attestation (in-toto) från GHCR
         if: always()
-        continue-on-error: true
         env:
           COSIGN_EXPERIMENTAL: "true"
         run: |
           set -euo pipefail
           mkdir -p attestations
 
-          TAG_REF=ghcr.io/${{ steps.ghcr_owner.outputs.owner_lc }}/spring-boot-integration:candidate-${{ steps.vars.outputs.short_sha }}
-          DIGEST_REF=ghcr.io/${{ steps.ghcr_owner.outputs.owner_lc }}/spring-boot-integration@${{ steps.build.outputs.digest }}
+          OWNER_LC="${{ steps.ghcr_owner.outputs.owner_lc }}"
+          SHORT_SHA="${{ steps.vars.outputs.short_sha }}"
+          TAG_REF="ghcr.io/${OWNER_LC}/spring-boot-integration:candidate-${SHORT_SHA}"
+          INDEX_REF="ghcr.io/${OWNER_LC}/spring-boot-integration@${{ steps.build.outputs.digest }}"
 
-          # Först: tagg
-          if ! cosign download attestation "$TAG_REF" > attestations/provenance.intoto.jsonl 2>/dev/null; then
-            # Fallback: digest
-            cosign download attestation "$DIGEST_REF" > attestations/provenance.intoto.jsonl 2>/dev/null || true
-          fi
+          # 1) Försök via taggen (manifest-index)
+          cosign download attestation "$TAG_REF" > attestations/provenance.intoto.jsonl 2>/dev/null || true
 
-          # Säkerställ att artefakten inte är tom
-          if [ ! -s attestations/provenance.intoto.jsonl ]; then
-            echo '{"note":"ingen attestation hittades i GHCR för denna referens"}' > attestations/provenance.intoto.jsonl
+          # 2) Hämta child-digests (per plattform) och försök per-digest
+          DIGESTS=$(docker buildx imagetools inspect "$INDEX_REF" --raw | jq -r '.manifests[].digest' || true)
+          for d in $DIGESTS; do
+            cosign download attestation "ghcr.io/${OWNER_LC}/spring-boot-integration@${d}" >> attestations/provenance.intoto.jsonl 2>/dev/null || true
+          done
+
+          # 3) Säkerställ att artefakten inte är tom/innehåller något vettigt
+          if ! grep -q '"predicateType"' attestations/provenance.intoto.jsonl 2>/dev/null; then
+            echo '{"note":"ingen attestation hittades i GHCR för denna build; multi-arch index returnerade inget"}' > attestations/provenance.intoto.jsonl
           fi
 
       - name: Ladda upp attestations som artifact (14 dagar)
@@ -213,10 +219,14 @@ jobs:
             --tag ${{ env.IMAGE_NAME }}:latest \
             ghcr.io/${{ steps.ghcr_owner.outputs.owner_lc }}/spring-boot-integration@${{ steps.build.outputs.digest }}
 
-      # Rensning: ta bort Docker build-artefakten som skapas automatiskt.
-      # Docker build-artefakten behålls om steget kommenteras bort eller tas bort.
-      - name: Ta bort dockerbuild-artifact (rensning)
-        if: always()
+  cleanup:
+    name: Rensa artifacts (dockerbuild)
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Ta bort dockerbuild-artifact
         uses: actions/github-script@v7
         with:
           script: |
@@ -225,7 +235,7 @@ jobs:
             const res = await github.rest.actions.listWorkflowRunArtifacts({owner, repo, run_id, per_page: 100});
             for (const a of res.data.artifacts) {
               if (a.name.includes('dockerbuild')) {
-               core.info(`Deleting ${a.name} (${a.id})`);
+                core.info(`Deleting ${a.name} (${a.id})`);
                 await github.rest.actions.deleteArtifact({owner, repo, artifact_id: a.id});
               }
             }
