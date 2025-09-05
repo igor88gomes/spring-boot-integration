@@ -174,9 +174,16 @@ jobs:
         if: always()
         run: mkdir -p attestations
 
-      # Hämta provenance/attestation (in-toto) för samma bild.
-      # Försök via kandidat-taggen, och samla även per-plattform via manifestets child-digests.
-      # Skriv en not om ingen attestation hittas (så artefakten inte blir tom).
+      # Logga in i GHCR för cosign (behövs separat)
+      - name: Logga in i GHCR för cosign
+        if: always()
+        env:
+          COSIGN_EXPERIMENTAL: "true"
+        run: |
+          echo "${{ github.token }}" | cosign login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      # GHCR-attestation: tagg → index → child-digests, upp till 3 försök.
+      # Skriv en not om inget hittas (artefakten blir inte tom).
       - name: Hämta attestation (in-toto) från GHCR
         if: always()
         env:
@@ -184,25 +191,30 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p attestations
-
+          
           OWNER_LC="${{ steps.ghcr_owner.outputs.owner_lc }}"
           SHORT_SHA="${{ steps.vars.outputs.short_sha }}"
           TAG_REF="ghcr.io/${OWNER_LC}/spring-boot-integration:candidate-${SHORT_SHA}"
           INDEX_REF="ghcr.io/${OWNER_LC}/spring-boot-integration@${{ steps.build.outputs.digest }}"
-
-          # 1) Försök via taggen (manifest-index)
-          cosign download attestation "$TAG_REF" > attestations/provenance.intoto.jsonl 2>/dev/null || true
-
-          # 2) Hämta child-digests (per plattform) och försök per-digest
-          DIGESTS=$(docker buildx imagetools inspect "$INDEX_REF" --raw | jq -r '.manifests[].digest' || true)
-          for d in $DIGESTS; do
-            cosign download attestation "ghcr.io/${OWNER_LC}/spring-boot-integration@${d}" >> attestations/provenance.intoto.jsonl 2>/dev/null || true
+          
+          ok=0
+          for i in 1 2 3; do
+            # 1) via tag
+            if cosign download attestation "$TAG_REF" > attestations/provenance.intoto.jsonl 2>/dev/null; then ok=1; break; fi
+            # 2) via child-digests (multi-arch)
+            DIGESTS=$(docker buildx imagetools inspect "$INDEX_REF" --raw | jq -r '.manifests[].digest' || true)
+            > attestations/provenance.intoto.jsonl
+            for d in $DIGESTS; do
+              cosign download attestation "ghcr.io/${OWNER_LC}/spring-boot-integration@${d}" >> attestations/provenance.intoto.jsonl 2>/dev/null || true
+            done
+            if grep -q '"predicateType"' attestations/provenance.intoto.jsonl 2>/dev/null; then ok=1; break; fi
+            sleep 5
           done
-
-          # 3) Säkerställ att artefakten inte är tom/innehåller något vettigt
-          if ! grep -q '"predicateType"' attestations/provenance.intoto.jsonl 2>/dev/null; then
-            echo '{"note":"ingen attestation hittades i GHCR för denna build; multi-arch index returnerade inget"}' > attestations/provenance.intoto.jsonl
+          
+          if [ $ok -eq 0 ]; then
+            echo '{"note":"ingen attestation hittades i GHCR för denna build (efter 3 försök)"}' > attestations/provenance.intoto.jsonl
           fi
+      
 
       - name: Ladda upp attestations som artifact (14 dagar)
         if: always()
