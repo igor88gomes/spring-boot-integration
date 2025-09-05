@@ -219,3 +219,17 @@ för att applikationen skulle fungera fullt ut.
 - Bättre **kompatibilitet** (x86_64 och Apple Silicon) med en och samma tagg.
 - **Automatisk städning** av **candidate images** i GHCR → lägre lagringskostnad/brus.
 - **Synlig säkerhetsstatus** direkt i GitHub under *Code scanning*, plus **SBOM/attestations** för spårbarhet.
+
+#### 2025-09-05 — CD-artefakter (SBOM/attestations), rensning och förfinad verifiering
+
+**Genomfört:**
+- **SBOM (CycloneDX):** genereras via Trivy från **candidate image** (via dess digest) och publiceras som Actions-artifact **`sbom`** (**14 dagar**).
+- **Attestations (in-toto/SLSA):** hämtas från **GHCR** för manifest-index **och** per plattform (fallback); publiceras som Actions-artifact **`attestations`** (**14 dagar**). Loggar noterar om ingen attestation hittas.
+- **Rensning:** separat **cleanup-jobb** tar bort Docker Build-artefakten (`*.dockerbuild`) från **Artifacts** för att minska brus (job summary-länken kvarstår).
+- **Dokumentation:** README uppdaterad med not om städning i CD-flödet; **USAGE.md** fick avsnittet **CD-artifacts** (hur man hämtar `sbom`/`attestations`).
+- **Promotion:** oförändrat — **promotion med samma digest** till Docker Hub `:latest` efter passerad **Trivy quality gate**.
+
+**Effekt:**
+- Granskare kan ladda ner **läsbar SBOM** och **proveniensfiler** direkt från Actions utan att bilden växer.
+- **14 dagars retention** på båda artefakterna ger spårbarhet utan långvarig lagring.
+- Renare artifacts-vy (endast relevanta filer), samtidigt som reproducibilitet och säkerhetsgrind bibehålls.
