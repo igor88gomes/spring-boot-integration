@@ -240,12 +240,13 @@ Se [docs/TESTS.md](docs/TESTS.md) för fler detaljer.
 - **Workflow:** `.github/workflows/docker-publish.yaml`
 - **Trigger:** push till `main` *(ej PR)*
 - **Publiceringsflöde:**
-- **Steg 1 – Candidate image (privat):** Buildx bygger **multi-arch** (`linux/amd64,linux/arm64`) och pushar **candidate image** till **GHCR (privat)** med rika **OCI‑etiketter**.
+- **Steg 1 – Candidate image (privat):** Buildx bygger **multi-arch** (`linux/amd64,linux/arm64`) och pushar **candidate image** till **GHCR (privat)** med rika **OCI-etiketter**.
 - **Steg 2 – Trivy quality gate:** skannar candidate image. **CRITICAL** blockerar pipelinen. **HIGH** rapporteras som **SARIF** till **Security → Code scanning**.
 - **Steg 3 – Promotion (reproducerbar):** Om spärren passerar, **promoteras exakt samma digest** till **Docker Hub** som `:latest`.
-- **Concurrency‑skydd:** `concurrency.group=docker-publish-${{ github.ref }}` + `cancel-in-progress: true` eliminerar parallella dubbletter.
-- **Retention:** candidate images i GHCR märks med `org.opencontainers.image.ref.name=candidate` och `ghcr.io/retention-days=14` för automatisk rensning.
-- **SBOM & attestation:** genereras i build‑steget för förbättrad supply‑chain‑spårbarhet.
+- **Steg 4 – Artifacts (insyn):** **SBOM (CycloneDX)** (`sbom.cdx.json`) och **attestations** (`*.intoto.jsonl`) publiceras som **Actions-artefakter** med **retention 14 dagar**.
+- **Rensning (artifact):** Docker Desktop-record (`*.dockerbuild`) tas bort automatiskt efter körning för att minska brus i **Actions**.
+- **Concurrency-skydd:** `concurrency.group=docker-publish-${{ github.ref }}` + `cancel-in-progress: true` eliminerar parallella dubbletter.
+- **Retention (GHCR):** candidate images märks med `org.opencontainers.image.ref.name=candidate` och `ghcr.io/retention-days=14` för automatisk rensning.
 
 ## Projektstruktur
 
