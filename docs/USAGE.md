@@ -249,6 +249,30 @@ Avsluta:
 3. Öppna `index.html` i mappen `target/site/apidocs/` i ZIP:en.
 
 > Obs: JavaDoc lagras som artifact i **14 dagar** och ingår inte i Docker-image (ignoreras i `.gitignore`).
+
+## CD-artifacts
+
+### Hämta SBOM (CycloneDX)
+1. Gå till **Actions** och öppna körningen för **docker-publish.yaml** (branch `main`) för ditt commit.
+2. Under **Artifacts**, klicka på **`sbom`** och ladda ner ZIP:en.
+3. Öppna filen `sbom.cdx.json` i ZIP:en (CycloneDX-format).
+
+> Obs: SBOM lagras som artifact i **14 dagar** och ingår inte i Docker-imagen.
+
+### Hämta attestations (in-toto/SLSA)
+1. I samma körning under **Artifacts**, klicka på **`attestations`** och ladda ner ZIP:en.
+2. ZIP:en innehåller en eller flera `*.intoto.jsonl` med signerat bevis (attestation).
+3. Spara filerna om du vill verifiera supply-chain i efterhand.
+
+> Obs: Attestations kan även vara kopplade till imagen i **GHCR**. Verifiering mot registry kan göras med `cosign` och bildens **digest** (valfritt).
+
+### Visa säkerhetsfynd (Code scanning)
+1. Öppna **Security → Code scanning** i GitHub.
+2. Filtrera på verktyg: **Trivy**.
+3. **CRITICAL** blockerar i **Trivy quality gate**; **HIGH** rapporteras här som **SARIF**.
+
+> Tips: Du hittar även digesten och multi-arch-info via `docker buildx imagetools inspect <image>:<tag>` om du vill dubbelkolla promotionen.
+
 ---
 
 ## Miljövariabler (valfritt)

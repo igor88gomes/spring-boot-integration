@@ -65,6 +65,7 @@ För flera detaljer om pipelinen, se:
 - [Bygg / CI & dokumentation (GitHub Actions)](#bygg--ci--dokumentation-github-actions)
 - [Distribution (CD) (GitHub Actions)](#distribution-cd-github-actions)
 - [docs/USAGE.md#ci-artifacts](docs/USAGE.md#ci-artifacts)
+- [docs/USAGE.md#cd-artifacts](docs/USAGE.md#cd-artifacts)
 
 ---
 
