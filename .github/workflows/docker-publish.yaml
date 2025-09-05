@@ -105,7 +105,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           # Supply chain: attestation + SBOM
-          provenance: true
+          provenance: mode=max
           sbom: true
 
       # Sårbarhetsscan av kandidaten (stoppar om CRITICAL/HIGH med fix)
@@ -174,15 +174,29 @@ jobs:
         if: always()
         run: mkdir -p attestations
 
+      # Hämta provenance/attestation (in-toto)
       - name: Hämta attestation (in-toto) från GHCR
         if: always()
-        continue-on-error: true        # fortsätt även om registry inte ger svar
+        continue-on-error: true
         env:
           COSIGN_EXPERIMENTAL: "true"
         run: |
+          set -euo pipefail
           mkdir -p attestations
-          cosign download attestation ghcr.io/${{ steps.ghcr_owner.outputs.owner_lc }}/spring-boot-integration@${{ steps.build.outputs.digest }} \
-            > attestations/provenance.intoto.jsonl
+
+          TAG_REF=ghcr.io/${{ steps.ghcr_owner.outputs.owner_lc }}/spring-boot-integration:candidate-${{ steps.vars.outputs.short_sha }}
+          DIGEST_REF=ghcr.io/${{ steps.ghcr_owner.outputs.owner_lc }}/spring-boot-integration@${{ steps.build.outputs.digest }}
+
+          # Först: tagg
+          if ! cosign download attestation "$TAG_REF" > attestations/provenance.intoto.jsonl 2>/dev/null; then
+            # Fallback: digest
+            cosign download attestation "$DIGEST_REF" > attestations/provenance.intoto.jsonl 2>/dev/null || true
+          fi
+
+          # Säkerställ att artefakten inte är tom
+          if [ ! -s attestations/provenance.intoto.jsonl ]; then
+            echo '{"note":"ingen attestation hittades i GHCR för denna referens"}' > attestations/provenance.intoto.jsonl
+          fi
 
       - name: Ladda upp attestations som artifact (14 dagar)
         if: always()
@@ -203,10 +217,15 @@ jobs:
       # Docker build-artefakten behålls om steget kommenteras bort eller tas bort.
       - name: Ta bort dockerbuild-artifact (rensning)
         if: always()
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts --paginate \
-            | jq -r '.artifacts[] | select((.name | contains("dockerbuild")) or (.name | endswith(".dockerbuild"))) | .id' \
-            | xargs -r -n1 -I {} gh api -X DELETE repos/${{ github.repository }}/actions/artifacts/{}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const {owner, repo} = context.repo;
+            const run_id = context.runId;
+            const res = await github.rest.actions.listWorkflowRunArtifacts({owner, repo, run_id, per_page: 100});
+            for (const a of res.data.artifacts) {
+              if (a.name.includes('dockerbuild')) {
+               core.info(`Deleting ${a.name} (${a.id})`);
+                await github.rest.actions.deleteArtifact({owner, repo, artifact_id: a.id});
+              }
+            }
