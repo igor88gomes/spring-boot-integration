@@ -29,6 +29,7 @@ jobs:
       contents: read
       packages: write
       security-events: write
+      actions: write
 
     steps:
       # Checka ut koden
@@ -139,9 +140,73 @@ jobs:
         with:
           sarif_file: trivy.sarif
 
+      # Skapa SBOM-katalog (för artifact)
+      - name: Skapa SBOM-katalog
+        if: always()
+        run: mkdir -p sbom
+
+      # Generera en läsbar SBOM (CycloneDX) som artefakt
+      - name: Generera SBOM (CycloneDX) för kandidat
+        if: always()                   # kör även om spärren faller, för insyn
+        continue-on-error: true        # påverkar inte spärren/promotion
+        uses: aquasecurity/trivy-action@0.33.0
+        with:
+          image-ref: ghcr.io/${{ steps.ghcr_owner.outputs.owner_lc }}/spring-boot-integration@${{ steps.build.outputs.digest }}
+          format: cyclonedx
+          output: sbom/sbom.cdx.json
+          ignore-unfixed: true
+
+      - name: Ladda upp SBOM som artifact (14 dagar)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom/sbom.cdx.json
+          retention-days: 14
+
+      # Hämta provenance/attestation (in-toto/SLSA) från GHCR för samma digest och publicera som artifact
+      - name: Installera cosign (för att hämta attestation)
+        if: always()
+        uses: sigstore/cosign-installer@v3
+
+      # Skapa attestations-katalog (för artifact)
+      - name: Skapa attestations-katalog
+        if: always()
+        run: mkdir -p attestations
+
+      - name: Hämta attestation (in-toto) från GHCR
+        if: always()
+        continue-on-error: true        # fortsätt även om registry inte ger svar
+        env:
+          COSIGN_EXPERIMENTAL: "true"
+        run: |
+          mkdir -p attestations
+          cosign download attestation ghcr.io/${{ steps.ghcr_owner.outputs.owner_lc }}/spring-boot-integration@${{ steps.build.outputs.digest }} \
+            > attestations/provenance.intoto.jsonl
+
+      - name: Ladda upp attestations som artifact (14 dagar)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: attestations
+          path: attestations/**
+          retention-days: 14
+
       # Främja EXAKT samma artefakt (digest) till :latest i Docker Hub
       - name: Främja kandidat till :latest (Docker Hub)
         run: |
           docker buildx imagetools create \
             --tag ${{ env.IMAGE_NAME }}:latest \
             ghcr.io/${{ steps.ghcr_owner.outputs.owner_lc }}/spring-boot-integration@${{ steps.build.outputs.digest }}
+
+      # Rensning: ta bort Docker build-artefakten som skapas automatiskt.
+      # Docker build-artefakten behålls om steget kommenteras bort eller tas bort.
+      - name: Ta bort dockerbuild-artifact (rensning)
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts --paginate \
+            | jq -r '.artifacts[] | select((.name | contains("dockerbuild")) or (.name | endswith(".dockerbuild"))) | .id' \
+            | xargs -r -n1 -I {} gh api -X DELETE repos/${{ github.repository }}/actions/artifacts/{}
