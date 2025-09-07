@@ -107,6 +107,18 @@ jobs:
           provenance: false
           sbom: false
 
+      # Trivy: cache av databas för snabbare körning (rotateras veckovis)
+      - name: Veckonyckel för Trivy-cache
+        id: wk
+        run: echo "value=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Trivy DB
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/trivy
+          key: ${{ runner.os }}-trivy-db-v2-${{ steps.wk.outputs.value }}
+          restore-keys: ${{ runner.os }}-trivy-db-v2-
+
       # Sårbarhetsscan av kandidaten (stoppar om CRITICAL)
       - name: Trivy scan (kandidat)
         uses: aquasecurity/trivy-action@0.33.0
