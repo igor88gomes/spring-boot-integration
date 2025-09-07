@@ -30,6 +30,7 @@ jobs:
       packages: write
       security-events: write
       actions: write
+      id-token: write
 
     steps:
       # Checka ut koden
@@ -107,6 +108,14 @@ jobs:
           # Supply chain: attestation + SBOM
           provenance: mode=max
           sbom: true
+
+      # Officiell GitHub-proveniens (in-toto) kopplad till exakt digest i GHCR
+      - name: Attestera build-proveniens (GHCR)
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-name: ghcr.io/${{ steps.ghcr_owner.outputs.owner_lc }}/spring-boot-integration
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
 
       # Sårbarhetsscan av kandidaten (stoppar om CRITICAL/HIGH med fix)
       - name: Trivy scan (kandidat)
