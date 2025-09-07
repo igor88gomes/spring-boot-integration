@@ -29,9 +29,6 @@ jobs:
       contents: read
       packages: write
       security-events: write
-      actions: write
-      id-token: write
-      attestations: write
 
     steps:
       # Checka ut koden
@@ -94,7 +91,7 @@ jobs:
         with:
           context: .
           push: true
-          # Multi-arch (kan tas bort om du inte behöver arm64)
+          # Multi-arch (behåll för x86_64 + Apple Silicon)
           platforms: linux/amd64,linux/arm64
           # Kandidattagg i GHCR – läsbar via kort SHA
           tags: ghcr.io/${{ steps.ghcr_owner.outputs.owner_lc }}/spring-boot-integration:candidate-${{ steps.vars.outputs.short_sha }}
@@ -106,7 +103,7 @@ jobs:
           # GitHub cache för snabbare inkrementella builds
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          # Buildx-provenance/attach inaktiveras här – vi använder cosign nedan
+          # Attestation/SBOM-inbäddning avaktiverad – vi publicerar läsbar SBOM som artifact nedan
           provenance: false
           sbom: false
 
@@ -142,14 +139,16 @@ jobs:
         with:
           sarif_file: trivy.sarif
 
-      # --- SBOM som artefakt (rekryterar-vänligt) ---
+      # --- CD-artifacts (SBOM) för Actions ---
+      # Skapa SBOM-katalog (för artifact)
       - name: Skapa SBOM-katalog
         if: always()
         run: mkdir -p sbom
 
+      # Generera en läsbar SBOM (CycloneDX) som artifact som kan laddas ner direkt från Actions
       - name: Generera SBOM (CycloneDX) för kandidat
-        if: always()
-        continue-on-error: false
+        if: always()                   # kör även om spärren faller, för insyn
+        continue-on-error: true        # påverkar inte spärren/promotion
         uses: aquasecurity/trivy-action@0.33.0
         with:
           image-ref: ghcr.io/${{ steps.ghcr_owner.outputs.owner_lc }}/spring-boot-integration@${{ steps.build.outputs.digest }}
@@ -157,93 +156,28 @@ jobs:
           output: sbom/sbom.cdx.json
           ignore-unfixed: true
 
-      - name: Ladda upp SBOM som artifact (14 dagar)
+      # Kontrollera SBOM
+      - name: Kontrollera SBOM (CycloneDX)
+        id: sbom_check
         if: always()
+        run: |
+          if [ -s sbom/sbom.cdx.json ] && jq -e '.bomFormat=="CycloneDX"' sbom/sbom.cdx.json >/dev/null 2>&1; then
+            echo "has=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Ladda upp SBOM som artifact (14 dagar)
+        if: always() && steps.sbom_check.outputs.has == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: sbom
           path: sbom/sbom.cdx.json
           retention-days: 14
 
-      # --- Attestation via cosign (keyless) — oberoende av GitHub Attestations API ---
-      # Installera cosign
-      - name: Installera cosign (för att bifoga/hämta attestation)
-        if: always()
-        uses: sigstore/cosign-installer@v3
-
-      # Logga in i GHCR (cosign push kräver auth till registry)
-      - name: Logga in i GHCR för cosign
-        if: always()
-        env:
-          COSIGN_EXPERIMENTAL: "true"
-        run: |
-          echo "${{ github.token }}" | cosign login ghcr.io -u "${{ github.actor }}" --password-stdin
-
-      # Skapa och bifoga en minimal SLSA-proveniens som OCI-referrer till exakt digest
-      - name: Bifoga provenance (in-toto/SLSA) till GHCR (cosign keyless)
-        if: always()
-        continue-on-error: true          # valfritt: påverkar inte publicering om något faller här
-        env:
-          COSIGN_EXPERIMENTAL: "true"
-        run: |
-          set -euo pipefail
-          IMAGE="ghcr.io/${{ steps.ghcr_owner.outputs.owner_lc }}/spring-boot-integration@${{ steps.build.outputs.digest }}"
-
-          cat > provenance.json <<'JSON'
-          {
-            "_type": "https://in-toto.io/Statement/v0.1",
-            "predicateType": "https://slsa.dev/provenance/v1",
-            "subject": [],
-            "predicate": {
-              "buildType": "https://slsa-framework.github.io/github-actions-buildtypes/workflow/v1",
-              "builder": { "id": "https://github.com/actions/runner" }
-            }
-          }
-          JSON
-
-          # Keyless-signering via OIDC; bifogar som OCI-referrer till IMAGE
-          cosign attest --yes --keyless --predicate provenance.json --type slsaprovenance "$IMAGE"
-
-      # Skapa attestations-katalog (för artifact)
-      - name: Skapa attestations-katalog
-        if: always()
-        run: mkdir -p attestations
-
-      # Hämta attestation (nu från GHCR – den som just bifogades)
-      - name: Hämta attestation (in-toto) från GHCR (cosign download)
-        if: always()
-        continue-on-error: true          # valfritt: pipeline ska inte falla om registry/väg svarar sent
-        env:
-          COSIGN_EXPERIMENTAL: "true"
-        run: |
-          set -euo pipefail
-          IMAGE="ghcr.io/${{ steps.ghcr_owner.outputs.owner_lc }}/spring-boot-integration@${{ steps.build.outputs.digest }}"
-          cosign download attestation "$IMAGE" > attestations/provenance.intoto.jsonl
-
-      # Kontroll: publicera endast om filen innehåller ett signerat payload (predicateType).
-      - name: Kontrollera att attestation innehåller payload
-        id: attest_check
-        if: always()
-        run: |
-          if grep -q '"predicateType"' attestations/provenance.intoto.jsonl 2>/dev/null; then
-            echo "has=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "has=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      # Ladda upp attestations som artifact (14 dagar) – bara när payload finns.
-      - name: Ladda upp attestations som artifact (14 dagar)
-        if: always() && steps.attest_check.outputs.has == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: attestations
-          path: attestations/**
-          retention-days: 14
-
-      # Logg om upload hoppas över
-      - name: Hoppa över upload (ingen attestation hittades)
-        if: always() && steps.attest_check.outputs.has != 'true'
-        run: echo "Ingen attestation hittades; hoppar över upload."
+      - name: Hoppa över upload (SBOM saknas/ogiltig)
+        if: always() && steps.sbom_check.outputs.has != 'true'
+        run: echo "SBOM saknas/ogiltig; hoppar över upload."
 
       # Främja EXAKT samma artefakt (digest) till :latest i Docker Hub
       - name: Främja kandidat till :latest (Docker Hub)
@@ -252,6 +186,7 @@ jobs:
             --tag ${{ env.IMAGE_NAME }}:latest \
             ghcr.io/${{ steps.ghcr_owner.outputs.owner_lc }}/spring-boot-integration@${{ steps.build.outputs.digest }}
 
+  # Separat jobb: rensa Docker Desktop build record-artefakt (för att undvika förvirring)
   cleanup:
     name: Rensa artifacts (dockerbuild)
     needs: publish
