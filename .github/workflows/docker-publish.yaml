@@ -156,6 +156,17 @@ jobs:
           output: sbom/sbom.cdx.json
           ignore-unfixed: true
 
+      # Kontroll: säkerställ att SBOM-filen finns och är CycloneDX
+      - name: Kontrollera SBOM (CycloneDX)
+        id: sbom_check
+        if: always()
+        run: |
+          if [ -s sbom/sbom.cdx.json ] && jq -e '.bomFormat=="CycloneDX"' sbom/sbom.cdx.json >/dev/null 2>&1; then
+            echo "has=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Ladda upp SBOM som artifact (14 dagar)
         if: always()
         uses: actions/upload-artifact@v4
@@ -163,6 +174,10 @@ jobs:
           name: sbom
           path: sbom/sbom.cdx.json
           retention-days: 14
+
+      - name: Hoppa över upload (SBOM saknas/ogiltig)
+        if: always() && steps.sbom_check.outputs.has != 'true'
+        run: echo "SBOM saknas/ogiltig; hoppar över upload."
 
       # Hämta provenance/attestation (in-toto/SLSA) från GHCR för samma digest och publicera som artifact
       - name: Installera cosign (för att hämta attestation)
@@ -212,9 +227,9 @@ jobs:
           done
           
           if [ $ok -eq 0 ]; then
-            echo '{"note":"ingen attestation hittades i GHCR för denna build (efter 3 försök)"}' > attestations/provenance.intoto.jsonl
+            # inget payload hittades – lämna utan fil; uppladdning kommer att hoppas över
+            rm -f attestations/provenance.intoto.jsonl || true
           fi
-      
 
       - name: Ladda upp attestations som artifact (14 dagar)
         if: always()
@@ -223,6 +238,10 @@ jobs:
           name: attestations
           path: attestations/**
           retention-days: 14
+
+      - name: Hoppa över upload (ingen attestation hittades)
+        if: always() && steps.attest_check.outputs.has != 'true'
+        run: echo "Ingen attestation hittades; hoppar över upload."
 
       # Främja EXAKT samma artefakt (digest) till :latest i Docker Hub
       - name: Främja kandidat till :latest (Docker Hub)
