@@ -259,13 +259,6 @@ Avsluta:
 
 > Obs: SBOM lagras som artifact i **14 dagar** och ingår inte i Docker-imagen.
 
-### Hämta attestations (in-toto/SLSA)
-1. I samma körning under **Artifacts**, klicka på **`attestations`** och ladda ner ZIP:en.
-2. ZIP:en innehåller en eller flera `*.intoto.jsonl` med signerat bevis (attestation).
-3. Spara filerna om du vill verifiera supply-chain i efterhand.
-
-> Obs: Attestations kan även vara kopplade till imagen i **GHCR**. Verifiering mot registry kan göras med `cosign` och bildens **digest** (valfritt).
-
 ### Visa säkerhetsfynd (Code scanning)
 1. Öppna **Security → Code scanning** i GitHub.
 2. Filtrera på verktyg: **Trivy**.
