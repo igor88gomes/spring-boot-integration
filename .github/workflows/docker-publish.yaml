@@ -31,6 +31,7 @@ jobs:
       security-events: write
       actions: write
       id-token: write
+      attestations: write
 
     steps:
       # Checka ut koden
@@ -117,7 +118,7 @@ jobs:
           subject-digest: ${{ steps.build.outputs.digest }}
           push-to-registry: true
 
-      # Sårbarhetsscan av kandidaten (stoppar om CRITICAL/HIGH med fix)
+        # Sårbarhetsscan av kandidaten (stoppar om CRITICAL/HIGH med fix)
       - name: Trivy scan (kandidat)
         uses: aquasecurity/trivy-action@0.33.0
         with:
@@ -193,11 +194,6 @@ jobs:
         if: always()
         uses: sigstore/cosign-installer@v3
 
-      # Skapa attestations-katalog (för artifact)
-      - name: Skapa attestations-katalog
-        if: always()
-        run: mkdir -p attestations
-
       # Logga in i GHCR för cosign (behövs separat)
       - name: Logga in i GHCR för cosign
         if: always()
@@ -205,6 +201,11 @@ jobs:
           COSIGN_EXPERIMENTAL: "true"
         run: |
           echo "${{ github.token }}" | cosign login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      # Skapa attestations-katalog (för artifact)
+      - name: Skapa attestations-katalog
+        if: always()
+        run: mkdir -p attestations
 
       # GHCR-attestation: tagg → index → child-digests, upp till 3 försök.
       # Skriv en not om inget hittas (artefakten blir inte tom).
