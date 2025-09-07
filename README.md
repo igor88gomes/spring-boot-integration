@@ -3,7 +3,7 @@
 [![CI – main](https://github.com/igor88gomes/spring-boot-integration/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/igor88gomes/spring-boot-integration/actions/workflows/ci.yaml)
 [![CD – main](https://github.com/igor88gomes/spring-boot-integration/actions/workflows/docker-publish.yaml/badge.svg?branch=main)](https://github.com/igor88gomes/spring-boot-integration/actions/workflows/docker-publish.yaml)
 [![Code scanning](https://img.shields.io/badge/Code%20scanning-enabled-blue)](https://github.com/igor88gomes/spring-boot-integration/security/code-scanning)
-[![SBOM](https://img.shields.io/badge/SBOM-CycloneDX%20%2F%20attestations-blue)](docs/USAGE.md#sbom--attestation)
+[![SBOM](https://img.shields.io/badge/SBOM-CycloneDX-blue)](docs/USAGE.md#cd-artifacts)
 [![Multi-arch](https://img.shields.io/badge/multi--arch-amd64%20%7C%20arm64-blue)](docs/USAGE.md#verifiera-multi-arch-amd64--arm64)
 [![Docker Hub](https://img.shields.io/badge/Docker%20Hub-image-blue)](https://hub.docker.com/r/igor88gomes/spring-boot-integration/tags)
 
@@ -38,7 +38,7 @@ till Docker Hub (`:latest`).
 ### Teknisk sammanfattning
 
 - **12-factor (Config):** konfiguration och hemligheter via **miljövariabler**; `.env.example` för dev; **inga hemligheter i koden**.
-- **Säkerhet (översikt):** env utan hemligheter; **Trivy quality gate före publicering**; **SBOM + attestations** och **OCI-etiketter** för supply-chain-spårbarhet.
+- **Säkerhet (översikt):** env utan hemligheter; **Trivy quality gate före publicering**; **SBOM och **OCI-etiketter** för supply-chain-spårbarhet.
 - **Backing services:** ActiveMQ (JMS) och PostgreSQL behandlas som utbytbara resurser (t.ex. `BROKER_URL`, `DB_*`).
 - **Observerbarhet:** **JSON-loggar** (Logback/Logstash), **MDC/korrelations-ID**, **/actuator/health**, tidsstämplar i **UTC** för spårbar analys.
 
@@ -55,7 +55,7 @@ till Docker Hub (`:latest`).
     - Pushar **candidate image** till **GHCR (privat)**
     - Kör **Trivy quality gate** — **CRITICAL blockerar**, **HIGH** → **SARIF** i *Security → Code scanning*
     - **Promoterar samma digest** till Docker Hub `:latest`
-    - Sätter **OCI-etiketter** (revision/created/source) + **SBOM/attestation**
+    - Sätter **OCI-etiketter** (revision/created/source) + **SBOM**
     - **Concurrency-skydd** avbryter parallella körningar
 
 För en översiktlig bild av pipelinen/pipelineflödet, se **Bild 2**. 
@@ -184,7 +184,7 @@ Se [docs/TESTS.md](docs/TESTS.md) för fler detaljer.
 ### Plattform / DevOps
 - **Gated CD** (GHCR → **Trivy**; CRITICAL blockerar) med **promotion per digest** till Docker Hub `:latest`
 - **Multi-arch builds** (`linux/amd64`, `linux/arm64`)
-- **Supply-chain metadata:** **SBOM + attestations**, **OCI-etiketter** (revision/created/source)
+- **Supply-chain metadata:** **SBOM (CycloneDX)** + **OCI-etiketter**
 - **Code scanning** i GitHub (SARIF)
 - **Concurrency-skydd** och **retention** av **candidate images** (14 dagar)
 
@@ -202,17 +202,17 @@ Se [docs/TESTS.md](docs/TESTS.md) för fler detaljer.
 | JUnit + Mockito   | Enhetstester                                  |
 
 ### Plattform / DevOps
-| Teknologi / Tjänst        | Användning                                             |
-|---------------------------|--------------------------------------------------------|
-| GitHub Actions            | CI/CD-automation                                       |
-| Docker Engine             | Container-runtime (lokalt och i build-pipeline)        |
-| Docker Compose            | Orkestrering lokalt (app, ActiveMQ, PostgreSQL)        |
-| Docker Buildx / QEMU      | **Multi-arch builds** (amd64/arm64)                    |
-| Trivy                     | **Sårbarhetsskanning** + **SARIF** (Code scanning)     |
-| SBOM / Attestations       | Supply-chain spårbarhet i build-steget                 |
-| OCI-etiketter             | `revision`, `created`, `source` (härkomst/metadata)    |
-| GHCR / Docker Hub         | Candidate image → **promotion per digest** (`:latest`) |
-| Concurrency / Retention   | Stoppar parallella körningar; **14 dagar** i GHCR      |
+| Teknologi / Tjänst      | Användning                                             |
+|-------------------------|--------------------------------------------------------|
+| GitHub Actions          | CI/CD-automation                                       |
+| Docker Engine           | Container-runtime (lokalt och i build-pipeline)        |
+| Docker Compose          | Orkestrering lokalt (app, ActiveMQ, PostgreSQL)        |
+| Docker Buildx / QEMU    | **Multi-arch builds** (amd64/arm64)                    |
+| Trivy                   | **Sårbarhetsskanning** + **SARIF** (Code scanning)     |
+| SBOM (CycloneDX)        | Supply-chain spårbarhet i build-steget                 |
+| OCI-etiketter           | `revision`, `created`, `source` (härkomst/metadata)    |
+| GHCR / Docker Hub       | Candidate image → **promotion per digest** (`:latest`) |
+| Concurrency / Retention | Stoppar parallella körningar; **14 dagar** i GHCR      |
 
 ## Körning (Runtime)
 
@@ -243,8 +243,8 @@ Se [docs/TESTS.md](docs/TESTS.md) för fler detaljer.
 - **Steg 1 – Candidate image (privat):** Buildx bygger **multi-arch** (`linux/amd64,linux/arm64`) och pushar **candidate image** till **GHCR (privat)** med rika **OCI-etiketter**.
 - **Steg 2 – Trivy quality gate:** skannar candidate image. **CRITICAL** blockerar pipelinen. **HIGH** rapporteras som **SARIF** till **Security → Code scanning**.
 - **Steg 3 – Promotion (reproducerbar):** Om spärren passerar, **promoteras exakt samma digest** till **Docker Hub** som `:latest`.
-- **Steg 4 – Artifacts (insyn):** **SBOM (CycloneDX)** (`sbom.cdx.json`) och **attestations** (`*.intoto.jsonl`) publiceras som **Actions-artefakter** med **retention 14 dagar**.
-- **Rensning (artifact):** Docker Desktop-record (`*.dockerbuild`) tas bort automatiskt efter körning för att minska brus i **Actions**.
+- **Steg 4 – Artifact (insyn):** **SBOM (CycloneDX)** (`sbom.cdx.json`) publiceras som **Actions-artefakter** med **retention 14 dagar**.
+- **Steg 5 - Rensning (artifact):** Docker Desktop-record (`*.dockerbuild`) tas bort automatiskt efter körning för att minska brus i **Actions**.
 - **Concurrency-skydd:** `concurrency.group=docker-publish-${{ github.ref }}` + `cancel-in-progress: true` eliminerar parallella dubbletter.
 - **Retention (GHCR):** candidate images märks med `org.opencontainers.image.ref.name=candidate` och `ghcr.io/retention-days=14` för automatisk rensning.
 
