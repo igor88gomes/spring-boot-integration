@@ -248,3 +248,17 @@ för att applikationen skulle fungera fullt ut.
 - **Artifacts-vyn** innehåller endast **`sbom`** (14 dagar); dockerbuild tas bort automatiskt av `cleanup`.
 - **Inga “tomma” artefakter:** SBOM publiceras endast när filen är giltig CycloneDX.
 - **Oförändrad säkerhetsnivå:** Trivy uppdaterar DB trots cache (cachet minskar bara nätverks-/init-tid).
+
+#### 2025-09-08 — CI-artefakter: vaktsteg för JaCoCo & JavaDoc
+
+**Genomfört:**
+- Vaktsteg i `ci.yaml` före uppladdning av artefakter.
+- **JaCoCo:** verifierar `target/site/jacoco/index.html` (”sanity check”) innan upload.
+- **JavaDoc (endast `main`):** verifierar `target/site/apidocs/index.html` innan upload.
+- Om kontrollen faller loggas *“<artefakt> saknas/ogiltig; hoppar över upload.”*
+- **Retention:** oförändrat — artefakter behålls i **14 dagar**.
+
+**Effekt:**
+- Inga tomma/korrumperade CI-artefakter; renare **Actions**-vy.
+- Linjerar med CD:s SBOM-vakt (konsekvent kvalitetsspärr i båda kedjorna).
+- Oförändrad CI-prestanda (snabb build/test).
