@@ -55,30 +55,30 @@ jobs:
         if: always() && steps.jacoco_check.outputs.has != 'true'
         run: echo "JaCoCo saknas/ogiltig; hoppar över upload."
 
-      # Kontroll: JavaDoc (endast på main) – index.html finns och är icke-tom
-      - name: Kontrollera JavaDoc (endast main)
+        # JavaDocs: endast på main
+      - name: Generera JavaDocs
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: mvn -B -DskipTests -DfailOnError=false javadoc:javadoc
+
+      - name: Kontrollera JavaDocs
         id: javadoc_check
-        if: always() && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
-          set -euo pipefail
-          FILE="target/site/apidocs/index.html"
-          if [ -s "$FILE" ]; then
+          if [ -d target/site/apidocs ] && [ "$(ls -A target/site/apidocs)" ]; then
             echo "has=true" >> "$GITHUB_OUTPUT"
           else
             echo "has=false" >> "$GITHUB_OUTPUT"
           fi
 
-      # Ladda upp JavaDoc (14 dagar) – endast om giltig och på main
-      - name: Ladda upp JavaDoc (14 dagar)
-        if: always() && github.ref == 'refs/heads/main' && steps.javadoc_check.outputs.has == 'true'
+      - name: Ladda upp JavaDocs (14 dagar)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.javadoc_check.outputs.has == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: javadoc
+          name: javadocs
           path: target/site/apidocs/**
           retention-days: 14
 
-      # Logg om upload hoppas över (JavaDoc)
-      - name: Hoppa över upload (JavaDoc saknas/ogiltig)
-        if: always() && github.ref == 'refs/heads/main' && steps.javadoc_check.outputs.has != 'true'
-        run: echo "JavaDoc saknas/ogiltig; hoppar över upload."
+      - name: Hoppa över upload (JavaDocs saknas)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.javadoc_check.outputs.has != 'true'
+        run: echo "JavaDocs saknas/ogiltiga; hoppar över upload."
 
