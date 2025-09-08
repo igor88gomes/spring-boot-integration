@@ -233,3 +233,18 @@ för att applikationen skulle fungera fullt ut.
 - Granskare kan ladda ner **läsbar SBOM** och **proveniensfiler** direkt från Actions utan att bilden växer.
 - **14 dagars retention** på båda artefakterna ger spårbarhet utan långvarig lagring.
 - Renare artifacts-vy (endast relevanta filer), samtidigt som reproducibilitet och säkerhetsgrind bibehålls.
+
+#### 2025-09-07 — CD-prestanda: cache & rensning
+
+**Genomfört:**
+- **Trivy DB-cache** innan skanningen (veckonyckel) för snabbare uppdateringar.
+- **Dockerfile med BuildKit-cache för Maven** (`--mount=type=cache,target=/root/.m2`) och separat kopiering av `pom.xml` → bättre cache-träff.
+- **Rensningsjobb (dockerbuild):** separat jobb `cleanup` tar bort Docker Desktop build record-artefakten (`*.dockerbuild`) med `actions/github-script@v7` efter `publish` (minskar brus i *Artifacts*).
+- **SBOM-vakt (CycloneDX):** steget `Kontrollera SBOM` säkerställer att `sbom/sbom.cdx.json` finns **och** att `.bomFormat=="CycloneDX"` innan uppladdning. Om ogiltig saknas → logg *“SBOM saknas/ogiltig; hoppar över upload.”*
+- **Attestations** borttaget (inte konsekvent tillgängligt i detta repo) för enklare och mer förutsägbar CD.
+
+**Effekt:**
+- **CD från ~5–6 min → ~1m24s** på varma körningar (**≈75–80% snabbare**). Kalla körningar blir fortfarande snabbare än tidigare.
+- **Artifacts-vyn** innehåller endast **`sbom`** (14 dagar); dockerbuild tas bort automatiskt av `cleanup`.
+- **Inga “tomma” artefakter:** SBOM publiceras endast när filen är giltig CycloneDX.
+- **Oförändrad säkerhetsnivå:** Trivy uppdaterar DB trots cache (cachet minskar bara nätverks-/init-tid).
