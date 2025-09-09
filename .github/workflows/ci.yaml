@@ -82,3 +82,34 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.javadoc_check.outputs.has != 'true'
         run: echo "JavaDocs saknas/ogiltiga; hoppar över upload."
 
+      # Spring Cloud Contract: publicera stubs.jar som artifact (endast main)
+      # Kontroll: finns och är icke-tom?
+      - name: Kontrollera stubs (SCC)
+        id: stubs_check
+        if: github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILE=$(ls -1 target/*-stubs.jar 2>/dev/null | head -n1 || true)
+          if [ -n "${FILE:-}" ] && [ -s "$FILE" ]; then
+            echo "has=true" >> "$GITHUB_OUTPUT"
+            echo "path=$FILE" >> "$GITHUB_OUTPUT"
+            echo "Hittade stubs: $FILE"
+          else
+            echo "has=false" >> "$GITHUB_OUTPUT"
+            echo "Inga stubs hittades i target/*-stubs.jar"
+          fi
+
+      - name: Ladda upp stubs (14 dagar)
+        if: github.ref == 'refs/heads/main' && steps.stubs_check.outputs.has == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: stubs
+          path: ${{ steps.stubs_check.outputs.path }}
+          retention-days: 14
+
+      - name: Hoppa över upload (stubs saknas/ogiltig)
+        if: github.ref == 'refs/heads/main' && steps.stubs_check.outputs.has != 'true'
+        run: echo "stubs saknas/ogiltig; hoppar över upload."
+
+
