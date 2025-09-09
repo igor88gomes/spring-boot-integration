@@ -1,47 +1,51 @@
 package com.igorgomes.integration.contract;
 
+import com.igorgomes.integration.MessageController;
+import com.igorgomes.integration.MessageProducer;
 import io.restassured.module.mockmvc.RestAssuredMockMvc;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
- * Bas-testklass för kontraktstester genererade av <i>Spring Cloud Contract</i>.
+ * Bas-testklass för kontraktstester genererade av <i>Spring Cloud Contract</i>
+ * som körs på en lättvikts-”MVC slice”.
  *
- * <p><b>Syfte</b></p>
+ * <p>Syfte:</p>
  * <ul>
- *   <li>Starta en minimal Spring-kontekst för tester via {@link SpringBootTest}.</li>
- *   <li>Exponera en {@link MockMvc}-instans med {@link AutoConfigureMockMvc}.</li>
+ *   <li>Ladda endast webblagret med {@link WebMvcTest} för {@link MessageController}.</li>
+ *   <li>Exponera en {@link MockMvc}-instans via {@link AutoConfigureMockMvc}.</li>
  *   <li>Koppla applikationens {@link MockMvc} till {@link RestAssuredMockMvc}
- *       så att genererade kontraktstester kan köras utan att starta en riktig server.</li>
- *   <li>Sätta testprofilen <code>test</code> via {@link ActiveProfiles} (t.ex. H2, test-konfiguration).</li>
+ *       så att de genererade kontraktstesterna kan köras utan att starta hela kontexten.</li>
+ *   <li>Använd profilen <b>test</b> via {@link ActiveProfiles} för enhetliga test-inställningar.</li>
  * </ul>
  *
- * <p><b>Användning</b></p>
- * <p>
- * Samtliga kontraktstester som genereras av Spring Cloud Contract kommer att ärva
- * denna klass och därmed automatiskt få korrekt MockMvc-konfiguration och profil.
- * </p>
+ * <p>Notis: {@link MessageProducer} mockas för att undvika beroenden mot JMS/broker i kontraktstesterna.
+ * Kontrakten verifierar endast HTTP-kontrakt (status 400/200) för <code>POST /api/send</code>.</p>
  */
-@SpringBootTest
+@WebMvcTest(controllers = MessageController.class)
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 public abstract class BaseContractTest {
 
-    /** MockMvc injiceras från Spring-konteksten. */
+    /** MockMvc injiceras från test-slicen (WebMvcTest). */
     @Autowired
     private MockMvc mockMvc;
+
+    /** Mock av producenten – kontraktstesterna behöver inte prata med JMS. */
+    @MockBean
+    private MessageProducer messageProducer;
 
     /**
      * Körs före varje testfall.
      *
      * <p>Konfigurerar {@link RestAssuredMockMvc} att använda applikationens
-     * {@link MockMvc}-instans så att kontraktstester kan skicka HTTP-anrop
-     * mot controller-lagret utan extern server.</p>
+     * {@link MockMvc}-instans (”MVC slice”).</p>
      */
     @BeforeEach
     void setup() {
@@ -51,8 +55,8 @@ public abstract class BaseContractTest {
     /**
      * Körs efter varje testfall.
      *
-     * <p>Återställer {@link RestAssuredMockMvc} för att undvika att
-     * tillstånd läcker mellan separata tester.</p>
+     * <p>Återställer {@link RestAssuredMockMvc} för att undvika läckande tillstånd
+     * mellan tester.</p>
      */
     @AfterEach
     void tearDown() {
