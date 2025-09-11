@@ -18,7 +18,7 @@ WORKDIR /app
 
 # Kör i UTC för konsekventa tider (JVM)
 ENV JAVA_TOOL_OPTIONS=""
-ENV JAVA_TOOL_OPTIONS="$JAVA_TOOL_OPTIONS -Duser.timezone=UTC"
+ENV JAVA_TOOL_OPTIONS="--add-opens java.base/java.io=ALL-UNNAMED -Duser.timezone=UTC"
 
 # Skapa loggmapp och ge skrivbehörighet
 RUN mkdir -p /app/logs && chmod -R 777 /app/logs
