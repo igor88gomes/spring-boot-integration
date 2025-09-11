@@ -269,7 +269,7 @@ spring-boot-integration/
 ## Relaterade dokument
 
 - **Användning:** [docs/USAGE.md](docs/USAGE.md)  
-- **Utvecklingsresa:** [docs/PROJECT_HISTORY.md](docs/PROJECT_HISTORY.md)  
+- **Tester:** [docs/TESTS.md](docs/TESTS.md)
 
 ## Kontakt
 

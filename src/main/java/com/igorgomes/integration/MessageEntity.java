@@ -1,9 +1,9 @@
 package com.igorgomes.integration;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import org.hibernate.annotations.CreationTimestamp;
+
 import java.time.LocalDateTime;
 
 /**
@@ -16,48 +16,27 @@ public class MessageEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    // Får inte vara null/blankt i domänmodellen
+    @NotBlank
+    @Column(nullable = false, length = 255) // DB-kontrakt (NOT NULL + maxlängd)
     private String content;
+
+    // Sätts automatiskt vid INSERT av Hibernate
+    @CreationTimestamp
+    @Column(nullable = false, updatable = false)
     private LocalDateTime receivedAt;
 
-    /**
-     * Tom konstruktor som krävs av JPA.
-     */
-    public MessageEntity() {}
+    // Tom konstruktor som krävs av JPA.
+    protected MessageEntity() {}
 
-    /**
-     * Skapar ett nytt meddelandeobjekt med innehåll och aktuell mottagningstid.
-     *
-     * @param content Textinnehållet i meddelandet.
-     */
+    // Skapar ett nytt meddelandeobjekt med innehåll.
     public MessageEntity(String content) {
         this.content = content;
-        this.receivedAt = LocalDateTime.now();
+        // OBS: receivedAt sätts nu av @CreationTimestamp (inte här)
     }
 
-    /**
-     * Hämtar meddelandets unika ID.
-     *
-     * @return ID för meddelandet.
-     */
-    public Long getId() {
-        return id;
-    }
-
-    /**
-     * Hämtar meddelandets innehåll.
-     *
-     * @return Textinnehållet i meddelandet.
-     */
-    public String getContent() {
-        return content;
-    }
-
-    /**
-     * Hämtar tidpunkten då meddelandet mottogs.
-     *
-     * @return Datum och tid för mottagning.
-     */
-    public LocalDateTime getReceivedAt() {
-        return receivedAt;
-    }
+    public Long getId() { return id; }
+    public String getContent() { return content; }
+    public LocalDateTime getReceivedAt() { return receivedAt; }
 }

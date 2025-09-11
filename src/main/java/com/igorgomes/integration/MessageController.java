@@ -1,6 +1,7 @@
 package com.igorgomes.integration;
 
 import org.slf4j.MDC;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -52,7 +53,7 @@ public class MessageController {
      * @param message Meddelandet som ska skickas.
      * @return Bekräftelsetext.
      */
-    @PostMapping("/api/send")
+    @PostMapping(value = "/api/send", produces = MediaType.TEXT_PLAIN_VALUE)
     public String sendMessage(@RequestParam String message) {
 
         // Validering: blockera null/tomma/vita tecken → 400 (Bad Request)
@@ -85,7 +86,7 @@ public class MessageController {
      *
      * @return Lista med MessageEntity-objekt.
      */
-    @GetMapping("/api/all")
+    @GetMapping(value = "/api/all", produces = MediaType.APPLICATION_JSON_VALUE)
     public List<MessageEntity> getAllMessages() {
         return messageRepository.findAll();
     }

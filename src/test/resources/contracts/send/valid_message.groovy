@@ -1,5 +1,5 @@
 org.springframework.cloud.contract.spec.Contract.make {
-    description 'POST /api/send med giltigt message ⇒ 200'
+    description 'POST /api/send med giltigt message ⇒ 200 (text/plain)'
     request {
         method 'POST'
         url('/api/send') {
@@ -10,5 +10,8 @@ org.springframework.cloud.contract.spec.Contract.make {
     }
     response {
         status 200
+        headers {
+            contentType(textPlain()) // <-- säkrar "Content-Type: text/plain"
+        }
     }
 }

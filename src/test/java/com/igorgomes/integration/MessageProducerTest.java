@@ -38,6 +38,8 @@ class MessageProducerTest {
 
         verify(jmsTemplate)
                 .convertAndSend(eq("test-queue"), eq("TestQueueMessage"), any(MessagePostProcessor.class));
+        // Säkerställ att inga fler anrop gjordes mot JmsTemplate
+        verifyNoMoreInteractions(jmsTemplate);
     }
 
     /**
@@ -61,6 +63,8 @@ class MessageProducerTest {
 
         // Header ska sättas när MDC har id
         verify(jmsMsg).setStringProperty(eq("messageId"), eq("test-123"));
+        // Säkerställ att inga fler anrop gjordes mot JmsTemplate
+        verifyNoMoreInteractions(jmsTemplate);
     }
 
     /**
@@ -84,5 +88,7 @@ class MessageProducerTest {
 
         // Header ska inte sättas när MDC saknar id
         verify(jmsMsg, never()).setStringProperty(eq("messageId"), anyString());
+        // Säkerställ att inga fler anrop gjordes mot JmsTemplate
+        verifyNoMoreInteractions(jmsTemplate);
     }
 }

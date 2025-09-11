@@ -49,5 +49,7 @@ class MessageProducerErrorTest {
         String logs = output.getOut() + output.getErr();
         assertTrue(logs.contains("Fel vid försök att skicka meddelandet"), "Saknar fel-logg");
         assertTrue(logs.contains("boom"), "Saknar undantagsdetalj i logg");
+        // Säkerställ att inga fler anrop gjordes mot JmsTemplate
+        verifyNoMoreInteractions(jms);
     }
 }

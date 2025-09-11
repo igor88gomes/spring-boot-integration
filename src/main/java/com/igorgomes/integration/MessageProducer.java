@@ -58,12 +58,16 @@ public class MessageProducer {
         try {
             logger.info("Skickar meddelande till kön: {}", message);
 
-            jmsTemplate.convertAndSend("test-queue", message, m -> {
+            jmsTemplate.convertAndSend(queueName, message, m -> {
                 if (currentMessageId != null && !currentMessageId.isBlank()) {
+                    // Behåll kompatibilitet: vår MessageConsumer läser headern "messageId"
                     m.setStringProperty("messageId", currentMessageId);
+                    // Nytt: standard-JMS-header (JMSCorrelationID) som SCC mappar som 'jms_correlationId'
+                    m.setJMSCorrelationID(currentMessageId);
                 }
                 return m;
             });
+
 
             logger.info("Meddelandet skickades framgångsrikt!");
         } catch (Exception e) {

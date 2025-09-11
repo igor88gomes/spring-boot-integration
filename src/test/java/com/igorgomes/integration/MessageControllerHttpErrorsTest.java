@@ -7,8 +7,9 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -70,6 +71,7 @@ class MessageControllerHttpErrorsTest {
                         // Ingen "message"-parameter
                 )
                 .andExpect(status().isBadRequest());
+                verifyNoInteractions(messageProducer);
     }
 
     /**
@@ -88,5 +90,27 @@ class MessageControllerHttpErrorsTest {
                                 .content("{\"message\":\"hello\"}")
                 )
                 .andExpect(status().isBadRequest());
+                 verifyNoInteractions(messageProducer);
+    }
+
+    /**
+     * HTTP-kontrakt för GET /api/all:
+     * - Svarar 200 OK
+     * - Content-Type är application/json (eller kompatibel)
+     * - Returnerar "[]" när lagret är tomt
+     */
+    @Test
+    @org.junit.jupiter.api.DisplayName("GET /api/all svarar 200 och JSON")
+    void getAll_returns200_andJson() throws Exception {
+        // Returnera tom lista från repo för att få "[]"
+        when(messageRepository.findAll()).thenReturn(java.util.List.of());
+
+        mockMvc.perform(get("/api/all"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(content().string("[]")); // Gör kontraktet tydligt
+
+        // Säkerställ att repo faktiskt anropades
+        verify(messageRepository, times(1)).findAll();
     }
 }

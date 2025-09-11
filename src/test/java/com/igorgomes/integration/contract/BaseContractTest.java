@@ -1,61 +1,74 @@
 package com.igorgomes.integration.contract;
 
+import com.igorgomes.integration.MessageController;
+import com.igorgomes.integration.MessageProducer;
+import com.igorgomes.integration.MessageRepository;
 import io.restassured.module.mockmvc.RestAssuredMockMvc;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doNothing;
+
 /**
- * Bas-testklass för kontraktstester genererade av <i>Spring Cloud Contract</i>.
+ * Bas-klass för SCC HTTP-kontrakt:
+ * - Kör endast MVC-lagret (WebMvcTest) för att testa status/headers/body.
+ * - Mockar beroenden (Producer/Repository) så att inga JMS/JPA startas.
  *
- * <p><b>Syfte</b></p>
- * <ul>
- *   <li>Starta en minimal Spring-kontekst för tester via {@link SpringBootTest}.</li>
- *   <li>Exponera en {@link MockMvc}-instans med {@link AutoConfigureMockMvc}.</li>
- *   <li>Koppla applikationens {@link MockMvc} till {@link RestAssuredMockMvc}
- *       så att genererade kontraktstester kan köras utan att starta en riktig server.</li>
- *   <li>Sätta testprofilen <code>test</code> via {@link ActiveProfiles} (t.ex. H2, test-konfiguration).</li>
- * </ul>
- *
- * <p><b>Användning</b></p>
- * <p>
- * Samtliga kontraktstester som genereras av Spring Cloud Contract kommer att ärva
- * denna klass och därmed automatiskt få korrekt MockMvc-konfiguration och profil.
- * </p>
+ * OBS (JMS-kontrakt): Denna bas-klass innehåller även två "trigger"-metoder
+ * (sendWithMdc/sendWithoutMdc) som kan anropas av kontrakt, men den
+ * tillhandahåller INTE någon ContractVerifierMessaging-infrastruktur.
+ * Om du behåller JMS-kontrakt i projektet behöver du en separat bas-klass
+ * med broker-stöd, eller så inaktiverar du JMS-kontrakten tills vidare.
  */
-@SpringBootTest
-@AutoConfigureMockMvc
-@ActiveProfiles("test")
-public abstract class BaseContractTest {
+@ExtendWith(SpringExtension.class)
+@WebMvcTest(MessageController.class) // starta bara controllern och MVC
+class BaseContractTest {
 
-    /** MockMvc injiceras från Spring-konteksten. */
     @Autowired
-    private MockMvc mockMvc;
+    private MockMvc mockMvc; // Mockad MVC-miljö (ingen riktig server)
 
-    /**
-     * Körs före varje testfall.
-     *
-     * <p>Konfigurerar {@link RestAssuredMockMvc} att använda applikationens
-     * {@link MockMvc}-instans så att kontraktstester kan skicka HTTP-anrop
-     * mot controller-lagret utan extern server.</p>
-     */
+    @MockBean
+    private MessageProducer producer; // mockad JMS-producent
+
+    @MockBean
+    private MessageRepository repository; // mockad JPA-repository (krävs av controllern)
+
     @BeforeEach
     void setup() {
+        // Koppla RestAssured till MockMvc
         RestAssuredMockMvc.mockMvc(mockMvc);
+
+        // Happy path: producenten gör inget (undviker JMS)
+        doNothing().when(producer).sendMessage(anyString());
+    }
+
+    /** Rensa endast den nyckel kontrakten bryr sig om. */
+    @BeforeEach
+    void _cleanMdcForMessagingTriggers() {
+        MDC.remove("messageId");
     }
 
     /**
-     * Körs efter varje testfall.
-     *
-     * <p>Återställer {@link RestAssuredMockMvc} för att undvika att
-     * tillstånd läcker mellan separata tester.</p>
+     * Svensk kommentar: används av JMS-kontrakt via triggeredBy("sendWithMdc()").
+     * Sätter korrelations-id i MDC och anropar producenten (mock).
      */
-    @AfterEach
-    void tearDown() {
-        RestAssuredMockMvc.reset();
+    public void sendWithMdc() {
+        MDC.put("messageId", "contract-test-id"); // samma värde som kontraktet förväntar sig
+        producer.sendMessage("payload");
+    }
+
+    /**
+     * Används av JMS-kontrakt via triggeredBy("sendWithoutMdc()").
+     * Skickar utan MDC-värde (mockad producent).
+     */
+    public void sendWithoutMdc() {
+        producer.sendMessage("payload");
     }
 }
