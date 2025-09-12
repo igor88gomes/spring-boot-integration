@@ -1,0 +1,17 @@
+title = "Custom Gitleaks config"
+
+# Definierar whitelist för filer som bara innehåller exempel-variabler
+
+[[allowlist]]
+description = "Ignore example env files and test configs"
+files = [
+    ".env.example",
+    ".*application-test.properties"
+]
+
+# vi kan också ignorera specifika fake-mönster
+[[allowlist]]
+description = "Ignore common placeholders"
+regexes = [
+    '''(?i)(changeme|to-be-set|example|dummy)'''
+]
