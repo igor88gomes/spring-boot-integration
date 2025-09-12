@@ -33,7 +33,7 @@ jobs:
     steps:
       # Checka ut koden
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       # Buildx för multi-arch builds
       - name: Ställ in Buildx
