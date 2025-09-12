@@ -1,0 +1,16 @@
+version: 2
+
+updates:
+  # Maven-beroenden (från pom.xml)
+  - package-ecosystem: "maven"
+    directory: "/"              # sök efter pom.xml i root
+    schedule:
+      interval: "weekly"        # kontrollera varje vecka
+    open-pull-requests-limit: 5 # max 5 öppna PRs åt gången
+
+  # GitHub Actions (workflow-versioner)
+  - package-ecosystem: "github-actions"
+    directory: "/"              # sök efter .github/workflows/
+    schedule:
+      interval: "weekly"        # kontrollera varje vecka
+    open-pull-requests-limit: 5

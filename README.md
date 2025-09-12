@@ -6,6 +6,7 @@
 [![Code scanning](https://img.shields.io/badge/Code%20scanning-enabled-blue)](https://github.com/igor88gomes/spring-boot-integration/security/code-scanning)
 [![SBOM](https://img.shields.io/badge/SBOM-CycloneDX-blue)](docs/USAGE.md#cd-artifacts)
 [![Multi-arch](https://img.shields.io/badge/multi--arch-amd64%20%7C%20arm64-blue)](docs/USAGE.md#verifiera-multi-arch-amd64--arm64)
+[![Dependabot](https://img.shields.io/badge/Dependabot-enabled-blue)](https://github.com/igor88gomes/spring-boot-integration/pulls?q=is%3Apr+author%3Aapp%2Fdependabot)
 [![Docker Hub](https://img.shields.io/badge/Docker%20Hub-image-blue)](https://hub.docker.com/r/igor88gomes/spring-boot-integration/tags)
 
 > Av Igor Gomes — DevOps Engineer
@@ -43,6 +44,7 @@ till Docker Hub (`:latest`).
 - **Secret scanning (Gitleaks)** på push/PR och veckovis (inga hemligheter i repo).
 - **Backing services:** ActiveMQ (JMS) och PostgreSQL behandlas som utbytbara resurser (t.ex. `BROKER_URL`, `DB_*`).
 - **Observerbarhet:** **JSON-loggar** (Logback/Logstash), **MDC/korrelations-ID**, **/actuator/health**, tidsstämplar i **UTC** för spårbar analys.
+- **Automatiserade dependency updates (Dependabot):** veckovisa PRs för Maven-beroenden och GitHub Actions-versioner (patch management utan manuell bevakning).
 
 ## CI/CD (GitHub Actions) i korthet
 
@@ -206,6 +208,7 @@ Se [docs/TESTS.md](docs/TESTS.md) för fler detaljer och [docs/USAGE.md](docs/US
 | JUnit + Mockito       | Enhetstester                              |
 | Spring Cloud Contract | Kontraktstester                           |
 
+### Plattform / DevOps
 | Teknologi / Tjänst      | Användning                                             |
 |-------------------------|--------------------------------------------------------|
 | GitHub Actions          | CI/CD-automation                                       |
