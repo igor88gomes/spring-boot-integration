@@ -74,39 +74,37 @@ Det gör både API-svar och loggfiler enklare att läsa, men är helt valfritt.
 curl http://localhost:8080/actuator/health | jq
 ```
 ```json
-[
 {
-"status": "UP",
-"components": {
-"db": {
-"status": "UP",
-"details": {
-"database": "PostgreSQL",
-"validationQuery": "isValid()"
+  "status": "UP",
+  "components": {
+    "db": {
+      "status": "UP",
+      "details": {
+        "database": "PostgreSQL",
+        "validationQuery": "isValid()"
+      }
+    },
+    "diskSpace": {
+      "status": "UP",
+      "details": {
+        "total": 1081101176832,
+        "free": 1016195850240,
+        "threshold": 10485760,
+        "path": "/app/.",
+        "exists": true
+      }
+    },
+    "jms": {
+      "status": "UP",
+      "details": {
+        "provider": "ActiveMQ"
+      }
+    },
+    "ping": {
+      "status": "UP"
+    }
+  }
 }
-},
-"diskSpace": {
-"status": "UP",
-"details": {
-"total": 1081101176832,
-"free": 1016195850240,
-"threshold": 10485760,
-"path": "/app/.",
-"exists": true
-}
-},
-"jms": {
-"status": "UP",
-"details": {
-"provider": "ActiveMQ"
-}
-},
-"ping": {
-"status": "UP"
-}
-}
-}
-]
 
 ```
 **Obs: validering:** Följande anrop ska ge **400**:
@@ -143,7 +141,9 @@ Applikationen loggar i **JSON-format** (Logback + Logstash Encoder) till **konso
 
 > På den första logghändelsen efter midnatt roteras gårdagens logg till `logs/app.YYYY-MM-DD.log`
 
-**Exempelanvändning med loggfiler samt återanvändning av `jq`:**
+**Exempelanvändning med loggfiler 
+
+> Loggarna är i JSON-format och kan läsas direkt med cat/tail eller formateras med jq.
 
  ```bash
 jq . logs/app.log
@@ -157,13 +157,13 @@ docker logs integration-app
 
 ### Verifiera end-to-end-korrelation i loggar (samma `messageId`)
 
-> Förutsättning: du kör med loggvolymen `./logs:/app/logs` och har `jq` installerat.
-
 **1) Skicka några testmeddelanden**
-```bash
-curl -X POST "http://localhost:8080/api/send?message=Test"
 
+```bash
+curl -X POST "http://localhost:8080/api/send?message=Test-1"
 ```
+> Tips: Exempel använder **jq** för enklare filtrering, men du kan lika gärna läsa `logs/app.log` direkt med `cat` eller `tail`.
+
 **2) Visa producentens rader (tid, text, messageId)**
 
 ```bash
@@ -232,34 +232,32 @@ Avsluta:
 
 ---
 
-## CI-artifacts
+## Artefakter (CI/CD)
 
-### Hämta JaCoCo-rapport (`main` och `test`)
+Alla artifacts hämtas via **Actions** i GitHub:
 
-1. Gå till **Actions** i GitHub-repot och öppna körningen för ditt commit.
-2. Under **Artifacts**, klicka på **`jacoco-report`** och ladda ner ZIP:en.
-3. Öppna `index.html` i ZIP:en för att se täckningen.
+1. Gå till **Actions** och öppna körningen för ditt commit.
+2. Under **Artifacts**, klicka på namnet och ladda ner ZIP:en.
 
-> Obs: Rapporten lagras som artifact i **14 dagar** och ingår inte i Docker-image (ignoreras i `.gitignore`).
+> Obs: Alla artifacts lagras i **14 dagar** och ingår inte i Docker-image (ignoreras i `.gitignore`).
 
-### Hämta JavaDoc (endast `main`)
+### CI-artifacts
 
-1. Gå till **Actions** i GitHub-repot och öppna körningen för ditt commit på `main`.
-2. Under **Artifacts**, klicka på **`javadoc`** och ladda ner ZIP:en.
-3. Öppna `index.html` i mappen `target/site/apidocs/` i ZIP:en.
+- **JaCoCo-rapport** (`main` och `test`)  
+  → Öppna `index.html` i ZIP:en för täckningen.
 
-> Obs: JavaDoc lagras som artifact i **14 dagar** och ingår inte i Docker-image (ignoreras i `.gitignore`).
+- **JavaDoc** (endast `main`)  
+  → Öppna `index.html` i `target/site/apidocs/`.
 
-## CD-artifacts
+- **Stubs** (endast `main`)  
+  → Använd innehållet som **WireMock-stubs** för konsumenttester.
 
-### Hämta SBOM (CycloneDX)
-1. Gå till **Actions** och öppna körningen för **docker-publish.yaml** (branch `main`) för ditt commit.
-2. Under **Artifacts**, klicka på **`sbom`** och ladda ner ZIP:en.
-3. Öppna filen `sbom.cdx.json` i ZIP:en (CycloneDX-format).
+### CD-artifacts
 
-> Obs: SBOM lagras som artifact i **14 dagar** och ingår inte i Docker-imagen.
+- **SBOM (CycloneDX)**  
+  → Öppna `sbom.cdx.json` i ZIP:en.
 
-### Visa säkerhetsfynd (Code scanning)
+#### Visa säkerhetsfynd (Code scanning)
 1. Öppna **Security → Code scanning** i GitHub.
 2. Filtrera på verktyg: **Trivy**.
 3. **CRITICAL** blockerar i **Trivy quality gate**; **HIGH** rapporteras här som **SARIF**.
@@ -275,7 +273,7 @@ Vill du anpassa konfigurationen, skapa en lokal `.env`.
 
 **Obs:** `.env.example` finns i repot som mall. Filer som börjar med punkt kan vara dolda. Visa dem t.ex. i Linux/macOS  med `ls -la` eller i Windows PowerShell med `ls -Force`.
 
-### Stödda nycklar (utan defaults)
+### Rensa nycklar (utan defaults)
 - `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`
 - `BROKER_URL`, `BROKER_USER`, `BROKER_PASS`
 - `APP_QUEUE_NAME`

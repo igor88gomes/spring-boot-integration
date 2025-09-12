@@ -42,21 +42,22 @@ till Docker Hub (`:latest`).
 - **Backing services:** ActiveMQ (JMS) och PostgreSQL behandlas som utbytbara resurser (t.ex. `BROKER_URL`, `DB_*`).
 - **Observerbarhet:** **JSON-loggar** (Logback/Logstash), **MDC/korrelations-ID**, **/actuator/health**, tidsstämplar i **UTC** för spårbar analys.
 
-## CI/CD i korthet
+## CI/CD (GitHub Actions) i korthet
 
 - **(CI)** `ci.yaml`
-    - Validerar och bygger (Maven)
-    - Testar med H2 (isolerade tester)
-    - Publicerar **JaCoCo** som artefakt (Actions)
-    - Genererar **JavaDoc** (artefakt)
+  - Validerar och bygger (Maven)
+  - Testar med H2 (isolerade tester)
+  - Publicerar **JaCoCo** (artefakt)
+  - Genererar **JavaDoc** (artefakt)
+  - Genererar **Stubs** (artefakt)
 
 - **(CD)** `docker-publish.yaml`
-    - Bygger **multi-arch** (`linux/amd64`, `linux/arm64`)
-    - Pushar **candidate image** till **GHCR (privat)**
-    - Kör **Trivy quality gate** — **CRITICAL blockerar**, **HIGH** → **SARIF** i *Security → Code scanning*
-    - **Promoterar samma digest** till Docker Hub `:latest`
-    - Sätter **OCI-etiketter** (revision/created/source) + **SBOM**
-    - **Concurrency-skydd** avbryter parallella körningar
+  - Bygger **multi-arch** (`linux/amd64`, `linux/arm64`)
+  - Pushar **candidate image** till **GHCR (privat)**
+  - Kör **Trivy quality gate** — **CRITICAL blockerar**, **HIGH** → **SARIF** i *Security → Code scanning*
+  - **Promoterar samma digest** till Docker Hub `:latest`
+  - Sätter **OCI-etiketter** (revision/created/source) + **SBOM** (artefakt)
+  - **Concurrency-skydd** avbryter parallella körningar
 
 För en översiktlig bild av pipelinen/pipelineflödet, se **Bild 2**. 
 
@@ -151,7 +152,6 @@ curl -X POST "http://localhost:8080/api/send?message=TestIntegration"
     "messageId": "03c5e1af-e53d-4a9c-890c-1259457ca6bd"
   }
 ]
-
 ```
 > Exemplet visar end-to-end-korrelation: producenten skickar `messageId` i **JMS-headern** och konsumenten läser headern och sätter samma `messageId` i MDC. Därmed kan samma ID följas genom hela flödet.
 
@@ -167,8 +167,9 @@ Se [docs/USAGE.md](docs/USAGE.md) för fler detaljer och körningskommandon.
 - Producer sätter `messageId` som JMS-header när MDC har värde; annars inte.
 - Controller ser till att `messageId` finns i MDC för `/api/send`.
 - Se `MessageProducerTest` för fallen *MDC present* och *MDC missing*.
+- Dessa kontraktstester används även för att generera **WireMock-stubs**, som lagras som artifacts i CI.
 
-Se [docs/TESTS.md](docs/TESTS.md) för fler detaljer.
+Se [docs/TESTS.md](docs/TESTS.md) för fler detaljer och [docs/USAGE.md](docs/USAGE.md) för exempel på end-to-end-verifiering i loggar.
 
 ## Funktionalitet
 
@@ -185,23 +186,24 @@ Se [docs/TESTS.md](docs/TESTS.md) för fler detaljer.
 - **Gated CD** (GHCR → **Trivy**; CRITICAL blockerar) med **promotion per digest** till Docker Hub `:latest`
 - **Multi-arch builds** (`linux/amd64`, `linux/arm64`)
 - **Supply-chain metadata:** **SBOM (CycloneDX)** + **OCI-etiketter**
+- **Kontraktstester** **(Spring Cloud Contract)** med automatisk generering av stubs (artefakt i CI)
 - **Code scanning** i GitHub (SARIF)
 - **Concurrency-skydd** och **retention** av **candidate images** (14 dagar)
 
 ## Teknologier
 
 ### Applikation
-| Teknologi         | Användning                                    |
-|-------------------|-----------------------------------------------|
-| Spring Boot 3.3.x | Huvudramverk                                  |
-| ActiveMQ          | Meddelandekö (JMS)                            |
-| PostgreSQL        | Databashanterare via JPA (containermiljö)     |
-| H2 Database       | In-memory databas för tester i CI             |
-| Spring Data JPA   | Hantering av entiteter och datalagring        |
-| Logback + MDC     | Strukturerad loggning i JSON-format           |
-| JUnit + Mockito   | Enhetstester                                  |
+| Teknologi             | Användning                                |
+|-----------------------|-------------------------------------------|
+| Spring Boot 3.3.x     | Huvudramverk                              |
+| ActiveMQ              | Meddelandekö (JMS)                        |
+| PostgreSQL            | Databashanterare via JPA (containermiljö) |
+| H2 Database           | In-memory databas för tester i CI         |
+| Spring Data JPA       | Hantering av entiteter och datalagring    |
+| Logback + MDC         | Strukturerad loggning i JSON-format       |
+| JUnit + Mockito       | Enhetstester                              |
+| Spring Cloud Contract | Kontraktstester                           |
 
-### Plattform / DevOps
 | Teknologi / Tjänst      | Användning                                             |
 |-------------------------|--------------------------------------------------------|
 | GitHub Actions          | CI/CD-automation                                       |
@@ -213,6 +215,7 @@ Se [docs/TESTS.md](docs/TESTS.md) för fler detaljer.
 | OCI-etiketter           | `revision`, `created`, `source` (härkomst/metadata)    |
 | GHCR / Docker Hub       | Candidate image → **promotion per digest** (`:latest`) |
 | Concurrency / Retention | Stoppar parallella körningar; **14 dagar** i GHCR      |
+| Kontraktsartefakter (CI)| Stub-generering och lagring i Actions                  |
 
 ## Körning (Runtime)
 
@@ -228,25 +231,42 @@ Se [docs/TESTS.md](docs/TESTS.md) för fler detaljer.
 
 - **Workflow:** `.github/workflows/ci.yaml`
 - **Trigger:** push/PR till `main` och `test`
-- **Steg:**
-    - **Steg 1 – Checkout & JDK 17:** checka ut källkod och konfigurera Java.
-    - **Steg 2 – Bygg & tester (Maven/H2):** kör `mvn verify` med H2 för isolerade tester.
-    - **Steg 3 – Kodtäckning (JaCoCo):** generera rapport och ladda upp som artefakt.
-    - **Steg 4 – JavaDoc (endast `main`):** generera och ladda upp som artefakt.
-- **Artefakter:** `jacoco-report` (main/test, **retention 14 dagar**), `javadoc` (endast `main`, **14 dagar**)
 
-### Distribution (CD) (GitHub Actions)
+- **Steg:**
+  - **Steg 1 – Checkout & JDK 17:** checka ut källkod och konfigurera Java.
+  - **Steg 2 – Bygg & tester (Maven/H2):** kör `mvn verify` med H2 för isolerade tester.
+  - **Steg 3 – Kodtäckning (JaCoCo):** generera rapport och ladda upp som artefakt.
+  - **Steg 4 – JavaDoc (endast `main`):** generera och ladda upp som artefakt.
+  - **Steg 5 – Stubs (SCC), (endast `main`): ** generera WireMock-stubs från kontrakt och ladda upp.
+
+- **Artefakter:**
+  - `jacoco-report` (main/test, **retention 14 dagar**)
+  - `javadocs` (endast `main`, **14 dagar**)
+  - `stubs` (endast `main`, **14 dagar**) – genererade av Spring Cloud Contract för konsumenttester
+
+### Distribution (CD) – Docker-image (GitHub Actions)
 
 - **Workflow:** `.github/workflows/docker-publish.yaml`
-- **Trigger:** push till `main` *(ej PR)*
+- **Trigger:** `push` till `main` *(ej PR)*
+
 - **Publiceringsflöde:**
-- **Steg 1 – Candidate image (privat):** Buildx bygger **multi-arch** (`linux/amd64,linux/arm64`) och pushar **candidate image** till **GHCR (privat)** med rika **OCI-etiketter**.
-- **Steg 2 – Trivy quality gate:** skannar candidate image. **CRITICAL** blockerar pipelinen. **HIGH** rapporteras som **SARIF** till **Security → Code scanning**.
-- **Steg 3 – Promotion (reproducerbar):** Om spärren passerar, **promoteras exakt samma digest** till **Docker Hub** som `:latest`.
-- **Steg 4 – Artifact (insyn):** **SBOM (CycloneDX)** (`sbom.cdx.json`) publiceras som **Actions-artefakter** med **retention 14 dagar**.
-- **Steg 5 - Rensning (artifact):** Docker Desktop-record (`*.dockerbuild`) tas bort automatiskt efter körning för att minska brus i **Actions**.
-- **Concurrency-skydd:** `concurrency.group=docker-publish-${{ github.ref }}` + `cancel-in-progress: true` eliminerar parallella dubbletter.
-- **Retention (GHCR):** candidate images märks med `org.opencontainers.image.ref.name=candidate` och `ghcr.io/retention-days=14` för automatisk rensning.
+  1. **Build (candidate, privat):** Buildx bygger **multi-arch** (`linux/amd64, linux/arm64`) och pushar en **candidate-image** till **GHCR** (privat) med rika **OCI-etiketter**  
+     – taggar baserade på commit SHA.
+  2. **Trivy – quality gate:** container-skanning av candidate-imagen.  
+     – **CRITICAL** sårbarheter blockerar; **HIGH** rapporteras som **SARIF** till *Security → Code scanning*.
+  3. **Promotion:** om spärren passerar, **promoteras exakt samma digest** till **Docker Hub** som `igor88gomes/spring-boot-integration:latest`.
+  4. **SBOM (insyn):** **CycloneDX SBOM** (`sbom.cdx.json`) laddas upp som **Actions-artefakt** (**retention 14 dagar**).
+  5. **Rensning:** temporära Docker Desktop-buildfiler (`*.dockerbuild`) tas bort i jobben för att hålla run-loggen ren.
+
+- **Säkerhet & kontroll:**
+  - **Concurrency:** `concurrency.group=docker-publish-${{ github.ref }}` och `cancel-in-progress: true` förhindrar parallella dubbletter.
+  - **Retention (GHCR):** candidate-images märks bl.a. med  
+    `org.opencontainers.image.ref.name=candidate` och `ghcr.io/retention-days=14` → autosanering efter 14 dagar.
+  - **Behörigheter:** workflow ger **packages: write**, **security-events: write**, **contents: read** för att kunna publicera images och skicka SARIF.
+
+- **Resultat:**
+  - **GHCR (privat):** *candidate* (per-commit) – för skanning och spårbarhet.
+  - **Docker Hub (publik):** `:latest` – **multi-arch** och redo för `docker/podman-compose`.
 
 ## Projektstruktur
 
