@@ -176,6 +176,19 @@ Se [docs/USAGE.md](docs/USAGE.md) för fler detaljer och körningskommandon.
 
 Se [docs/TESTS.md](docs/TESTS.md) för fler detaljer och [docs/USAGE.md](docs/USAGE.md) för exempel på end-to-end-verifiering i loggar.
 
+## BDD/E2E (Cucumber)
+
+- Scenarier: `src/test/resources/features/message_integration.feature`
+- Steg/konfiguration: `src/test/java/com/igorgomes/integration/bdd/*`
+- Verifierar kedjan end-to-end: HTTP → JMS-kö → konsument → JPA-persistens (inkl. loggkorrelation via `messageId`).
+- Exempel:
+  - *Giltigt meddelande*: `/api/send` svarar **200**, meddelandet skickas till kön och sparas i DB.
+  - *Blankt meddelande*: `/api/send` svarar **400**, **ingen** ny rad i DB.
+- Körning: `mvn test` (alla tester) eller `mvn -Dtest=CucumberTest test` (enbart E2E).
+- Miljö under test: inbäddad ActiveMQ via testprofil (`vm://embedded`) och **Awaitility** för robust väntan på asynkrona effekter.
+
+Se även [docs/TESTS.md](docs/TESTS.md) för fler detaljer.
+
 ## Funktionalitet
 
 ### Applikation

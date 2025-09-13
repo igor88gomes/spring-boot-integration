@@ -112,7 +112,7 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Para aguardar consumo assíncrono (JMS -> DB) com polling elegante -->
+        <!-- För att invänta asynkron konsumtion (JMS -> DB) med smidig polling -->
         <dependency>
             <groupId>org.awaitility</groupId>
             <artifactId>awaitility</artifactId>
@@ -134,7 +134,7 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- API javax.jms para satisfazer o broker embutido no TEST runtime -->
+        <!-- javax.jms-API för att stödja den inbäddade brokern under testkörning -->
         <dependency>
             <groupId>javax.jms</groupId>
             <artifactId>javax.jms-api</artifactId>
