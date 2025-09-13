@@ -44,7 +44,8 @@ till Docker Hub (`:latest`).
 - **Secret scanning (Gitleaks)** på push/PR och veckovis (inga hemligheter i repo).
 - **Backing services:** ActiveMQ (JMS) och PostgreSQL behandlas som utbytbara resurser (t.ex. `BROKER_URL`, `DB_*`).
 - **Observerbarhet:** **JSON-loggar** (Logback/Logstash), **MDC/korrelations-ID**, **/actuator/health**, tidsstämplar i **UTC** för spårbar analys.
-- **Automatiserade dependency updates (Dependabot):** veckovisa PRs för Maven-beroenden och GitHub Actions-versioner (patch management utan manuell bevakning).
+- **Automatiserade dependency updates (Dependabot):** veckovisa säkerhets-PRs för Maven-beroenden och GitHub Actions-versioner
+  (automatisk detektion och patch management, med manuell review innan merge).
 
 ## CI/CD (GitHub Actions) i korthet
 
