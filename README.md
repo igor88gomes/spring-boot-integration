@@ -1,4 +1,4 @@
-# Spring Boot Integration – ICC Demo  
+ checkout# Spring Boot Integration – ICC Demo  
 
 [![CI – main](https://github.com/igor88gomes/spring-boot-integration/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/igor88gomes/spring-boot-integration/actions/workflows/ci.yaml)
 [![CD – main](https://github.com/igor88gomes/spring-boot-integration/actions/workflows/docker-publish.yaml/badge.svg?branch=main)](https://github.com/igor88gomes/spring-boot-integration/actions/workflows/docker-publish.yaml)
@@ -300,5 +300,6 @@ spring-boot-integration/
 ## Kontakt
 
 Igor Gomes — DevOps Engineer  
-[LinkedIn](https://www.linkedin.com/in/igor-gomes-5b6184290) · [Docker Hub](https://hub.docker.com/r/igor88gomes/spring-boot-integration/tags)  
+[LinkedIn](https://www.linkedin.com/in/igor-gomes-5b6184290) 
+[Docker Hub](https://hub.docker.com/r/igor88gomes/spring-boot-integration/tags)  
 **E-post:** [igor88gomes@gmail.com](mailto:igor88gomes@gmail.com)
