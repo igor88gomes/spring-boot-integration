@@ -12,6 +12,9 @@ Instruktionerna nedan använder **Docker** som standard.
 Om du använder **Podman**, ersätt helt enkelt `docker` med `podman` och  
 `docker compose` med `podman-compose`.
 
+> **Obs!** Vill du köra tester lokalt utan Docker?
+> Se [docs/TESTS.md](docs/TESTS.md#kör-tester-lokalt).
+
 ---
 
 ## Snabbstart

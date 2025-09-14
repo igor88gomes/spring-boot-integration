@@ -1,56 +1,89 @@
 # Tester
 
 ## Översikt
+
 Testerna täcker **Controller**, **Producer**, **Consumer**, **Repository** och **HTTP-kontrakt**. Fokus: **indata-validering**, **korrelation (MDC + JMS)** och **stabila HTTP-svar**.
 
 ## Testtyper & ramverk
-- **Enhet/web-slice**: JUnit 5, Mockito, Spring Boot Test, **MockMvc**.
-- **Kontraktstester (SCC)**: Spring Cloud Contract Verifier (genererar tester från kontrakt) som körs mot **MVC-slice** via `BaseContractTest` (`@WebMvcTest` + `@MockBean` på `MessageProducer`) — inga externa brokers/databaser krävs.
-- **Persistens (H2)**: JPA-tester i profil `test`.
 
-## Vad som verifieras (huvudpunkter)
-- **Controller**
-    - `POST /api/send`: **400** vid tomt/blankt `message`; **200** vid giltig input med **`Content-Type: text/plain`**.
-    - `GET /api/all`: **200** och **`application/json`**; returnerar `[]` när repo är tomt.
-- **Producer (JMS)**
-    - Sätter `messageId` som **JMS-header** när **MDC** finns; sätter **inte** headern när MDC saknas.
-    - Felväg: loggar fel från `JmsTemplate` men **propagerar inte undantaget**.
-- **Consumer (JMS)**
-    - Läser `messageId` från headern, persisterar meddelandet och loggar samma korrelations-ID (E2E-spårbarhet).
-- **Repository (JPA/H2)**
-    - Baspersistens: ID genereras, fält bevaras, `receivedAt` ej `null`.
-    - Validering: blankt `content` avvisas (Bean Validation/DB-kontrakt).
+- **Enhet/Web-slice** — JUnit 5, Mockito, Spring Boot Test, **MockMvc**.
+- **Persistens (H2)** — Spring Boot Test + JPA, in-memory H2 i **profil `test`**.
+- **BDD/E2E** — Cucumber (JUnit 5) + Spring Boot Test + **Awaitility**; **inbäddad ActiveMQ (vm://embedded)** och H2.
+- **Kontrakt (SCC)** — Spring Cloud Contract Verifier (genererar JUnit-tester och **stubs.jar**; kör mot MVC-slice via `BaseContractTest`).
 
-## Kontrakt (SCC)
-- `invalid_message.groovy`: `POST /api/send` med blankt `message` ⇒ **400**.
-- `valid_message.groovy`: `POST /api/send` med giltigt `message` ⇒ **200** + `Content-Type: text/plain`.
+*Ungefärlig progression: från enklare/snabbare till mer omfattande tester.*
 
-## Körning
-- **Lokal/CI**: `mvn verify` (profilsättning `test` sker via Surefire).
-- Artefakter i CI: JaCoCo-rapport, JavaDoc (main), samt **stubs.jar** från SCC när genererad.
+## Enhet/Web-slice
+
+- **Syfte:** Verifiera HTTP-lager (statuskoder, headers) och producentlogik utan externa beroenden.
+- **Omfattning (exempel):**
+  - Controller: `POST /api/send` (**200/400** + `Content-Type: text/plain`), `GET /api/all` (**200** + `application/json`).
+  - Producer: sätter `messageId`-header när MDC finns; loggar fel utan att propagera undantag.
+- **Miljö:** Spring Boot Test (web-slice) + **MockMvc**/**Mockito**; inga externa tjänster.
+- **Källor/Plats:**
+  - `MessageControllerTest`, `MessageControllerHttpErrorsTest`,
+  - `MessageProducerTest`, `MessageProducerErrorTest`
+- **Körning:** Ingår i `mvn test` / `mvn verify` (Surefire).
+- **Artefakter:** Täcks av JaCoCo-rapport i CI.
+- **Felsökning:** Vid fel `400`/`Content-Type`, kontrollera controller-annoteringar (t.ex. `produces = MediaType.TEXT_PLAIN_VALUE`) och validering av `message`.
+
+## Persistens (H2)
+
+- **Syfte:** Validera JPA-mappning och baspersistens mot in-memory DB.
+- **Omfattning (exempel):** Spara/läsa `MessageEntity`, `@NotBlank content`, `receivedAt` sätts.
+- **Miljö:** JPA-test med H2 i **profil `test`** (t.ex. `@DataJpaTest`/`@SpringBootTest` + `TestDatabase`).
+- **Källor/Plats:** `MessageRepositoryTest`
+- **Körning:** Ingår i `mvn test` / `mvn verify`.
+- **Artefakter:** Täcks av JaCoCo-rapport i CI.
+- **Felsökning:** Säkerställ testprofilen och `application-test.properties` (H2, `ddl-auto=create-drop`) är aktiva.
 
 ## BDD/E2E (Cucumber)
 
 - **Syfte:** Verifierar kedjan end-to-end: HTTP → JMS-kö → Consumer → JPA-persistens, inkl. loggkorrelation via `messageId` (MDC + JMS-header).
-- **Plats:**
-  - Scenarier: `src/test/resources/features/message_integration.feature`
-  - Steg/konfiguration: `src/test/java/com/igorgomes/integration/bdd/*`
-- **Vad som testas (exempel):**
+- **Omfattning (exempel):**
   - Giltigt meddelande ⇒ `/api/send` svarar **200**, meddelandet skickas till kön och sparas i DB.
   - Blankt meddelande ⇒ `/api/send` svarar **400**, **ingen** ny rad i DB.
+- **Miljö:** Inbäddad ActiveMQ (`vm://embedded`), H2 (profil **`test`**), **Awaitility** för asynkrona kontroller.
+- **Källor/Plats:**
+  - Scenarier: `src/test/resources/features/message_integration.feature`
+  - Steg/konfiguration: `src/test/java/com/igorgomes/integration/bdd/*`
+- **Körning:**
+  - **Alla tester:** `mvn test`
+  - **Endast E2E:** `mvn -Dtest=CucumberTest test`
+  - (Valfritt) Taggar: `-Dcucumber.filter.tags="@smoke"` eller `@regression`
+- **Artefakter:** Körs under **Surefire** tillsammans med övriga JUnit 5-tester.
+- **Felsökning:** Om JMS-anslutning misslyckas, säkerställ aktiv **testprofil** och `broker-url` som ovan.
 
-## Körning
-- **Alla tester**: `mvn test`
-- **Endast E2E**: `mvn -Dtest=CucumberTest test`
-  - (Valfritt) Taggfiltrering om du märker scenarier: `-Dcucumber.filter.tags="@smoke"` eller `@regression`
-- **Testmiljö:**
-  - Inbäddad ActiveMQ via testprofil: `spring.activemq.broker-url=vm://embedded?broker.persistent=false&broker.useShutdownHook=false`
-  - **Awaitility** används för robust väntan på asynkrona effekter (JMS → DB).
-  - In-memory H2 för persistens i profil `test`.
-- **Integration med CI/Maven:**
-  - Körs under **Surefire** tillsammans med övriga JUnit 5-tester (ingen extern broker/databas krävs).
-- **Felsökning (kort):**
-  - Om JMS-anslutning misslyckas, kontrollera att testprofilen är aktiv och att `broker-url` är satt som ovan.
+## Kontrakt (SCC)
 
-## Notering
-Detta dokument är medvetet **kort**: detaljerade testfall finns i koden och i genererade SCC-tester. Syftet här är att ge en snabb översikt av **vad** som testas och **varför** (robusthet, kontrakt och korrelation).
+- **Syfte:** Säkerställa HTTP-kontraktet (statuskoder/validering och `Content-Type`) mot API:t.
+- **Omfattning:** `contracts/valid_message.groovy` (200 + `text/plain`) och `contracts/invalid_message.groovy` (400).
+- **Miljö:** MVC-slice via `BaseContractTest` — inga externa tjänster krävs.
+- **Källor/Plats:** `src/test/resources/contracts/*`
+- **Körning:** Ingår automatiskt i `mvn verify` (SCC **generateTests** + **convert**) och körs sedan som vanliga JUnit-tester.
+- **Artefakter:** Genererade JUnit-tester samt **`stubs.jar`** för konsumenter.
+- **Felsökning:** Vid mismatch (t.ex. fel status/`Content-Type`), kontrollera kontrakten och att `BaseContractTest` mappar rätt controller.
+
+## Sammanfattning: Körning & Artefakter
+
+- **Lokal/CI:** `mvn verify` kör alla JUnit, Cucumber och **SCC**-tester.
+- **Artefakter (CI):** JaCoCo-rapport, JavaDoc (main) och **stubs.jar** från SCC.
+
+**Artefakter (CI/CD):** se [docs/USAGE.md#artefakter-cicd](docs/USAGE.md#artefakter-cicd).
+
+## Kör tester lokalt
+
+Du kan köra alla tester lokalt.
+
+**Förutsättningar:** JDK 17 eller senare och Maven.
+
+```bash
+# Snabbkoll av miljön
+mvn -v
+
+# Snabbkörning lokalt (H2 + inbäddad ActiveMQ via profil "test")
+mvn clean test
+
+# Med täckningsrapport (JaCoCo) och genererade kontraktstester
+mvn clean verify
+```

@@ -27,52 +27,33 @@
 
 ## Projektinformation
 
-Detta projekt visar en komplett integrationslösning inspirerad av ICC-mönster, utvecklad från grunden med
-moderna teknologier och etablerade arkitekturmönster. Lösningen kombinerar asynkron kommunikation,
-spårbarhet, testbarhet och fullständig automatisering genom CI/CD-pipelines och Docker-baserad
-distribution.
+Detta projekt är en komplett integrationslösning inspirerad av ICC-mönster, **utvecklad från grunden**.
+Det kombinerar asynkron kommunikation, spårbarhet, testbarhet och full CI/CD-automatisering.
 
-Applikationen är byggd med Java och Spring Boot 3, och använder ActiveMQ (JMS) för meddelandehantering,
-PostgreSQL för datalagring samt Docker för containerisering. GitHub Actions kör automatiska tester i CI (H2) och 
-**pushar först en candidate image till GHCR (privat)**; efter **Trivy quality gate** (**CRITICAL blockerar**) **promoteras med samma digest** 
-till Docker Hub (`:latest`).
+**Höjdpunkter**
+- Händelsedriven väg: REST API → JMS/ActiveMQ → konsument → JPA/PostgreSQL.
+- Spårbarhet: JSON-loggar med korrelations-ID (MDC/JMSCorrelationID) end-to-end.
+- Testbarhet: enhet/web-slice, JPA/H2, BDD (Cucumber) och kontrakt (SCC).
+- Leverans: GitHub Actions kör tester i CI (H2) och **pushar först en kandidat-image till GHCR (privat)**; efter **Trivy-kvalitetsgrind** (**CRITICAL blockerar**) **promoteras med samma digest** till Docker Hub (`:latest`).
+- **Säkerhet & supply chain:** Trivy-gate (CRITICAL stop), **SBOM/OCI-etiketter**, **Gitleaks** och **Dependabot**.
 
-### Teknisk sammanfattning
+**Teknikstack (kort):** Java/Spring Boot 3, ActiveMQ (JMS), PostgreSQL, Docker/Compose.  
+*Test/CI-miljö:* H2 (in-memory, profil `test`). Inbäddad ActiveMQ (`vm://embedded`) startas för BDD/E2E; SCC kör mot MVC-slice (utan broker).
 
-- **12-factor (Config):** konfiguration och hemligheter via **miljövariabler**; `.env.example` för dev; **inga hemligheter i koden**.
-- **Säkerhet (översikt):** env utan hemligheter; **Trivy quality gate före publicering**; **SBOM och **OCI-etiketter** för supply-chain-spårbarhet.
-- **Secret scanning (Gitleaks)** på push/PR och veckovis (inga hemligheter i repo).
-- **Backing services:** ActiveMQ (JMS) och PostgreSQL behandlas som utbytbara resurser (t.ex. `BROKER_URL`, `DB_*`).
-- **Observerbarhet:** **JSON-loggar** (Logback/Logstash), **MDC/korrelations-ID**, **/actuator/health**, tidsstämplar i **UTC** för spårbar analys.
-- **Automatiserade dependency updates (Dependabot):** veckovisa säkerhets-PRs för Maven-beroenden och GitHub Actions-versioner
-  (automatisk detektion och patch management, med manuell review innan merge).
+### Principer (kort)
 
-## CI/CD (GitHub Actions) i korthet
+- **12-factor (Config):** miljövariabler; `.env.example`; **inga hemligheter i koden**.
+- **Observerbarhet:** **JSON-loggar**, **MDC/korrelations-ID**, **/actuator/health**, tidsstämplar i **UTC**.
+- **Backing services:** ActiveMQ (JMS) och PostgreSQL konfigureras via env (`BROKER_URL`, `DB_*`).
 
-- **(CI)** `ci.yaml`
-  - Validerar och bygger (Maven)
-  - Testar med H2 (isolerade tester)
-  - Publicerar **JaCoCo** (artefakt)
-  - Genererar **JavaDoc** (artefakt)
-  - Genererar **Stubs** (artefakt)
+> **CI/CD:** För detaljer, se avsnitten nedan. Se även **Bild 2** för pipelineflödet.
 
-- **(CD)** `docker-publish.yaml`
-  - Bygger **multi-arch** (`linux/amd64`, `linux/arm64`)
-  - Pushar **candidate image** till **GHCR (privat)**
-  - Kör **Trivy quality gate** — **CRITICAL blockerar**, **HIGH** → **SARIF** i *Security → Code scanning*
-  - **Promoterar samma digest** till Docker Hub `:latest`
-  - Sätter **OCI-etiketter** (revision/created/source) + **SBOM** (artefakt)
-  - **Concurrency-skydd** avbryter parallella körningar
-
-För en översiktlig bild av pipelinen/pipelineflödet, se **Bild 2**. 
-
-För flera detaljer om pipelinen, se:
+**Snabblänkar (CI/CD):**
 
 - [Bygg / CI & dokumentation (GitHub Actions)](#bygg--ci--dokumentation-github-actions)
-- [Distribution (CD) (GitHub Actions)](#distribution-cd-github-actions)
+- [Distribution (CD) – Docker-image (GitHub Actions)](#distribution-cd--docker-image-github-actions)
 - [docs/USAGE.md#ci-artifacts](docs/USAGE.md#ci-artifacts)
 - [docs/USAGE.md#cd-artifacts](docs/USAGE.md#cd-artifacts)
-
 ---
 
 ## Arkitektur & korrelation (översikt)
@@ -168,26 +149,16 @@ curl -X POST "http://localhost:8080/api/send?message=TestIntegration"
 Detta gör att samma `messageId` kan följas från HTTP-ingången, via kön, till persistens. 
 Se [docs/USAGE.md](docs/USAGE.md) för fler detaljer och körningskommandon.
 
-### Tester (korrelationskontrakt)
-- Producer sätter `messageId` som JMS-header när MDC har värde; annars inte.
-- Controller ser till att `messageId` finns i MDC för `/api/send`.
-- Se `MessageProducerTest` för fallen *MDC present* och *MDC missing*.
-- Dessa kontraktstester används även för att generera **WireMock-stubs**, som lagras som artifacts i CI.
+## Testöversikt
 
-Se [docs/TESTS.md](docs/TESTS.md) för fler detaljer och [docs/USAGE.md](docs/USAGE.md) för exempel på end-to-end-verifiering i loggar.
+- **Controller:** Konsistenta statuskoder (**200/400**) och korrekta headers.
+- **Producer (JMS):** Korrelation via `messageId` (MDC → JMS-header) och korrekt felhantering (logga, ej propagera).
+- **Consumer (JMS):** Läser `messageId`, persisterar meddelanden och bibehåller korrelations-ID.
+- **Repository (JPA/H2):** Baspersistens, `@NotBlank`-validering och att `receivedAt` sätts.
+- **Kontrakt/BDD:** Säkerställer 200/400 och kedjan **HTTP → JMS → DB** end-to-end.
 
-## BDD/E2E (Cucumber)
-
-- Scenarier: `src/test/resources/features/message_integration.feature`
-- Steg/konfiguration: `src/test/java/com/igorgomes/integration/bdd/*`
-- Verifierar kedjan end-to-end: HTTP → JMS-kö → konsument → JPA-persistens (inkl. loggkorrelation via `messageId`).
-- Exempel:
-  - *Giltigt meddelande*: `/api/send` svarar **200**, meddelandet skickas till kön och sparas i DB.
-  - *Blankt meddelande*: `/api/send` svarar **400**, **ingen** ny rad i DB.
-- Körning: `mvn test` (alla tester) eller `mvn -Dtest=CucumberTest test` (enbart E2E).
-- Miljö under test: inbäddad ActiveMQ via testprofil (`vm://embedded`) och **Awaitility** för robust väntan på asynkrona effekter.
-
-Se även [docs/TESTS.md](docs/TESTS.md) för fler detaljer.
+Se [docs/TESTS.md](docs/TESTS.md) för fler detaljer om testerna.  
+**Artefakter (CI/CD):** se [docs/USAGE.md#artefakter-cicd](docs/USAGE.md#artefakter-cicd).
 
 ## Funktionalitet
 
@@ -216,7 +187,7 @@ Se även [docs/TESTS.md](docs/TESTS.md) för fler detaljer.
 | Spring Boot 3.3.x     | Huvudramverk                              |
 | ActiveMQ              | Meddelandekö (JMS)                        |
 | PostgreSQL            | Databashanterare via JPA (containermiljö) |
-| H2 Database           | In-memory databas för tester i CI         |
+| H2-databas            | In-memory databas för tester i CI         |
 | Spring Data JPA       | Hantering av entiteter och datalagring    |
 | Logback + MDC         | Strukturerad loggning i JSON-format       |
 | JUnit + Mockito       | Enhetstester                              |
@@ -244,7 +215,7 @@ Se även [docs/TESTS.md](docs/TESTS.md) för fler detaljer.
 - `activemq` – ActiveMQ (JMS)
 - `postgres` – PostgreSQL
 
-→ > ** Java 17 ingår i applikationsimagen; inget lokalt JDK krävs.**
+> **Obs:** Java 17 ingår i applikationsimagen; inget lokalt JDK krävs.
 
 ### Bygg / CI & dokumentation (GitHub Actions)
 
@@ -256,7 +227,7 @@ Se även [docs/TESTS.md](docs/TESTS.md) för fler detaljer.
   - **Steg 2 – Bygg & tester (Maven/H2):** kör `mvn verify` med H2 för isolerade tester.
   - **Steg 3 – Kodtäckning (JaCoCo):** generera rapport och ladda upp som artefakt.
   - **Steg 4 – JavaDoc (endast `main`):** generera och ladda upp som artefakt.
-  - **Steg 5 – Stubs (SCC), (endast `main`): ** generera WireMock-stubs från kontrakt och ladda upp.
+  - **Steg 5 – Stubs (SCC), (endast `main`):** generera WireMock-stubs från kontrakt och ladda upp.
 
 - **Artefakter:**
   - `jacoco-report` (main/test, **retention 14 dagar**)
@@ -292,16 +263,18 @@ Se även [docs/TESTS.md](docs/TESTS.md) för fler detaljer.
 ```text
 spring-boot-integration/
 │
-├── .github/workflows/      # CI/CD-pipelines (ci.yaml, docker-publish.yaml)
-├── .gitignore              # Ignorerade filer (t.ex. target/, .env)
-├── .dockerignore           # Exkluderar onödiga filer från Docker build-context
+├── .github/workflows/      # CI/CD-workflows (ci.yaml, docker-publish.yaml, secret-scan.yaml)
+├── .gitignore              # Ignorerade filer (t.ex. target/, logs/, .env)
+├── .dockerignore           # Utesluter onödiga filer från Docker build-context
+├── .gitleaks.toml          # Regler för secret scanning (Gitleaks)
+├── dependabot.yaml         # Automatiska dependency-uppdateringar
 ├── .env.example            # Exempel på miljövariabler (inga hemligheter i koden)
-├── docs/                   # Dokumentation & bilder (diagram i docs/images/)
-├── logs/                   # Lokala loggar (skapas vid körning, ej versionerad)
-├── src/                    # Källkod & tester (main/ och test/)
+├── docs/                   # Dokumentation (USAGE.md, TESTS.md) & bilder (docs/images)
+├── logs/                   # Lokala loggar (volym i Docker; ignoreras av Git)
+├── src/                    # Källkod (main/) och tester (test/)
 ├── pom.xml                 # Maven-konfiguration (beroenden/plugins)
-├── Dockerfile              # Bygger applikationsimagen 
-├── docker-compose.yaml     # Lokalt orkestreringsstöd (app, ActiveMQ, PostgreSQL)
+├── Dockerfile              # Bygger applikationsimagen
+├── docker-compose.yaml     # Lokal orkestrering (app, ActiveMQ, PostgreSQL)
 └── README.md               # Projektöversikt
 ```
 
