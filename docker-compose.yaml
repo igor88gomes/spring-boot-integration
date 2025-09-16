@@ -4,9 +4,11 @@ services:
   postgres:
     image: postgres:13
     container_name: postgres
+    # Läser variabler från .env för substitutions (Compose läser .env i projektroten).
+    # Kräver lösenord: stoppar tidigt om DB_PASSWORD saknas.
     environment:
       POSTGRES_USER: ${DB_USER:-integration}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}   # <-- krävs
       POSTGRES_DB: ${DB_NAME:-integrationdb}
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -35,6 +37,9 @@ services:
   integration-app:
     image: igor88gomes/spring-boot-integration:latest
     container_name: integration-app
+    # Läser DB_* och BROKER_* från .env in i containern (krävs av Spring)
+    env_file:
+      - .env                               # <-- lägg .env i projektroten
     depends_on:
       postgres:
         condition: service_healthy
