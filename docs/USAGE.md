@@ -25,21 +25,30 @@ Om du använder **Podman**, ersätt helt enkelt `docker` med `podman` och
 git clone https://github.com/igor88gomes/spring-boot-integration.git
 cd spring-boot-integration
 ```
-### 2) Bygg och starta stacken (app + ActiveMQ + PostgreSQL)
+
+### 2) Kopiera mallfilen `.env.example` till en lokal `.env` (obligatoriskt för att starta stacken) 
+
+```bash
+cp .env.example .env
+```
+
+> Rekommenderat: fyll i skarpa värden i .env för ökad säkerhet (ignoreras av Git). I övrigt räcker kopieringen från `.env.example` till `.env`
+
+### 3) Bygg och starta stacken (app + ActiveMQ + PostgreSQL)
 
 ```bash
 docker compose up --build -d
 # alt: podman-compose up --build -d
 ```
 
-### 3) Kontrollera körande containrar
+### 4) Kontrollera körande containrar
 
 ```bash
 docker ps
 # alt: podman ps
 ```
 
-### 4) Stoppa och rensa nätverk/containers
+### 5) Stoppa och rensa nätverk/containers
 
 ```bash
 docker compose down
@@ -268,23 +277,6 @@ Alla artifacts hämtas via **Actions** i GitHub:
 > Tips: Du hittar även digesten och multi-arch-info via `docker buildx imagetools inspect <image>:<tag>` om du vill dubbelkolla promotionen.
 
 ---
-
-## Miljövariabler (valfritt)
-
-`.env` är **valfritt**. Om filen saknas körs stacken med interna dev-standarder.  
-Vill du anpassa konfigurationen, skapa en lokal `.env`.
-
-## Miljövariabler
-
-Skapa en lokal **`.env`** för din miljö. Se **`.env.example`** som mall.  
-Inga standardvärden kontrolleras in i koden.
-
-Nycklar som stöds:
-- `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`
-- `BROKER_URL`, `BROKER_USER`, `BROKER_PASS`
-- `APP_QUEUE_NAME`
-
-```
 
 > **Obs:** Pipelines och artifacts är fullt fungerande i detta repo och kan granskas direkt via **Actions**-fliken.  
 > Vid automatiska tester i CI används en in-memory **H2**-databas istället för PostgreSQL för snabbare körning och enklare underhåll.  
