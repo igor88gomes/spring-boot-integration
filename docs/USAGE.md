@@ -274,29 +274,16 @@ Alla artifacts hämtas via **Actions** i GitHub:
 `.env` är **valfritt**. Om filen saknas körs stacken med interna dev-standarder.  
 Vill du anpassa konfigurationen, skapa en lokal `.env`.
 
-**Obs:** `.env.example` finns i repot som mall. Filer som börjar med punkt kan vara dolda. Visa dem t.ex. i Linux/macOS  med `ls -la` eller i Windows PowerShell med `ls -Force`.
+## Miljövariabler
 
-### Rensa nycklar (utan defaults)
+Skapa en lokal **`.env`** för din miljö. Se **`.env.example`** som mall.  
+Inga standardvärden kontrolleras in i koden.
+
+Nycklar som stöds:
 - `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`
 - `BROKER_URL`, `BROKER_USER`, `BROKER_PASS`
 - `APP_QUEUE_NAME`
 
-**Exempel – `.env` med platshållare (redigera värdena):**
-```dotenv
-# Database
-DB_HOST=<host>
-DB_PORT=<port>
-DB_NAME=<dbname>
-DB_USER=<user>
-DB_PASSWORD=<password>
-
-# ActiveMQ
-BROKER_URL=<tcp://host:port>
-BROKER_USER=<user>
-BROKER_PASS=<password>
-
-# App queue
-APP_QUEUE_NAME=<queue-name>
 ```
 
 > **Obs:** Pipelines och artifacts är fullt fungerande i detta repo och kan granskas direkt via **Actions**-fliken.  

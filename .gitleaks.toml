@@ -1,16 +1,16 @@
 title = "Custom Gitleaks config"
 
-# Huvudnivå allowlist (map), inte lista [[allowlist]]
+# Global allowlist (gäller för hela repo:t)
 [allowlist]
-description = "Ignorera exempel/test-konfigfiler och vanliga placeholders"
+description = "Ignorera exempel-/testfiler och vanliga placeholders"
 
-# Filer som ska ignoreras för att undvika falsklarm
+# Filer att ignorera (regex på filnamn/sökväg)
 files = [
-    ".env.example",
-    ".*application-test.properties"
+    ".env.example",                 # endast exempel, inga riktiga hemligheter
+    ".*application-test\\.properties" # test-konfig (H2/JMS), inga secrets här
 ]
 
-# Vanliga strängar (placeholders) som inte ska räknas som hemligheter
+# Vanliga strängar som inte ska räknas som hemligheter
 regexes = [
     '''(?i)changeme''',
     '''(?i)to-be-set''',
