@@ -6,7 +6,7 @@ services:
     container_name: postgres
     environment:
       POSTGRES_USER: ${DB_USER:-integration}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-integration_pass}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME:-integrationdb}
     volumes:
       - postgres_data:/var/lib/postgresql/data
