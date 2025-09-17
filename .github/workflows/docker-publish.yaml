@@ -121,7 +121,7 @@ jobs:
 
       # Sårbarhetsscan av kandidaten (stoppar om CRITICAL)
       - name: Trivy scan (kandidat)
-        uses: aquasecurity/trivy-action@0.33.0
+        uses: aquasecurity/trivy-action@0.33.1
         with:
           # Skanna EXAKT det som byggdes (via digest)
           image-ref: ghcr.io/${{ steps.ghcr_owner.outputs.owner_lc }}/spring-boot-integration@${{ steps.build.outputs.digest }}
@@ -136,7 +136,7 @@ jobs:
       - name: Trivy SARIF (report)
         if: always()
         continue-on-error: true
-        uses: aquasecurity/trivy-action@0.33.0
+        uses: aquasecurity/trivy-action@0.33.1
         with:
           image-ref: ghcr.io/${{ steps.ghcr_owner.outputs.owner_lc }}/spring-boot-integration@${{ steps.build.outputs.digest }}
           scanners: 'vuln'
@@ -161,7 +161,7 @@ jobs:
       - name: Generera SBOM (CycloneDX) för kandidat
         if: always()                   # kör även om spärren faller, för insyn
         continue-on-error: true        # påverkar inte spärren/promotion
-        uses: aquasecurity/trivy-action@0.33.0
+        uses: aquasecurity/trivy-action@0.33.1
         with:
           image-ref: ghcr.io/${{ steps.ghcr_owner.outputs.owner_lc }}/spring-boot-integration@${{ steps.build.outputs.digest }}
           format: cyclonedx
