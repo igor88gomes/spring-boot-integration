@@ -1,20 +1,22 @@
 version: 2
 updates:
-  # 1) Maven (applikationen) — ENDAST SÄKERHET
+  # 1) Maven (applikationen) — säkerhet + patch/minor i samma regel (unikt combo)
   - package-ecosystem: "maven"
     directory: "/"
     schedule:
-      interval: "weekly"           # körs måndagar kl 01:00 UTC
+      interval: "weekly"           # måndagar kl 01:00 UTC
       day: "monday"
       time: "01:00"
       timezone: "UTC"
-    security-updates-only: true    # endast säkerhetsuppdateringar (minskar brus)
     target-branch: "test"          # PRs går till arbetsbranchen; CI kör där först
-    open-pull-requests-limit: 4
+    open-pull-requests-limit: 5
     rebase-strategy: "auto"
-    groups:                        # samla allt i en PR
-      maven-security:
+    groups:
+      maven-security:              # samla säkerhetsuppdateringar
         applies-to: security-updates
+        patterns: ["*"]
+      maven-patch-minor:           # samla icke-säkerhet (patch/minor)
+        update-types: ["patch", "minor"]
         patterns: ["*"]
     ignore:                        # stora hopp planeras separat
       - dependency-name: "org.springframework.boot:*"
@@ -24,7 +26,7 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"           # 15 min senare än Maven
+      interval: "weekly"           # 15 min efter Maven
       day: "monday"
       time: "01:15"
       timezone: "UTC"
@@ -36,25 +38,3 @@ updates:
       gha-security:
         applies-to: security-updates
         patterns: ["*"]
-
-  # 3) Maven — ICKE-SÄKERHET (patch/minor) VECKOVIS
-  # Håller allt uppdaterad utan att skapa brus; majors hanteras separat.
-  - package-ecosystem: "maven"
-    directory: "/"
-    schedule:
-      interval: "weekly"           # måndagar kl 01:30 UTC (efter säkerhet/gha)
-      day: "monday"
-      time: "01:30"
-      timezone: "UTC"
-    target-branch: "test"
-    open-pull-requests-limit: 2
-    rebase-strategy: "auto"
-    allow:                         # lägre risk: endast direkta beroenden
-      - dependency-type: "direct"
-    groups:
-      maven-nonsecurity:
-        update-types: ["patch", "minor"]
-        patterns: ["*"]
-    ignore:
-      - dependency-name: "org.springframework.boot:*"
-        update-types: ["major"]

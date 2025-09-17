@@ -282,13 +282,18 @@ Se [docs/TESTS.md](docs/TESTS.md) för fler detaljer om testerna.
 
 ### Beroendehantering (Dependabot)
 
-- **Säkerhetsuppdateringar (UTC):**
-  - Maven: måndagar 01:00 UTC → PR till `test`
-  - GitHub Actions: måndagar 01:15 UTC → PR till `test`
-- **Icke-säkerhet (patch/minor, UTC):**
-  - Maven (direkta beroenden): måndagar 01:30 UTC → PR till `test`
-- Policy: PR-gruppering, auto-rebase, majors ignoreras (planeras separat).
-- Branchskydd kräver grön CI + Gitleaks innan merge.
+- **Schema (UTC) & flöde**
+  - **Maven (app):** **måndagar 01:00 UTC** → PR till `test`  
+    – *en körning, två grupper*:
+    - `maven-security` (endast säkerhetsuppdateringar)
+    - `maven-patch-minor` (patch/minor för direkta beroenden)
+  - **GitHub Actions (CI):** **måndagar 01:15 UTC** → PR till `test` (endast säkerhet)
+
+- **Policy**
+  - PR-gruppering (färre, mer strukturerade PRs) och **auto-rebase**.
+  - **Target branch:** `test` (CI kör först där).
+  - **Majors** (t.ex. `spring-boot`) ignoreras här och planeras separat.
+  - **Branchskydd:** PR kräver **grön CI** (build + tester) och **Gitleaks** innan merge.
 
 ### Kodskanning (SARIF)
 
