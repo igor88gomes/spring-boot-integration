@@ -285,10 +285,11 @@ Se [docs/TESTS.md](docs/TESTS.md) för fler detaljer om testerna.
 - **Schema (UTC) & flöde**
   - **Maven (app):** **måndagar 01:00 UTC** → PR till `test`  
     – *en körning, två grupper*:
-    - `maven-security` (endast säkerhetsuppdateringar)
-    - `maven-patch-minor` (patch/minor för direkta beroenden)
+    - `maven-security` – **endast säkerhetsuppdateringar**
+    - `maven-patch-minor` – **patch/minor för direkta beroenden**
   - **GitHub Actions (CI):** **måndagar 01:15 UTC** → PR till `test`  
-    – versionbumps **grupperas** (patch/minor) och säkerhetsuppdateringar inkluderas när advisories finns.
+    – versionbumps **grupperas** (patch/minor) och säkerhetsuppdateringar kommer när advisories finns.
+  - **Tidszon:** alla tider är **UTC** för konsekventa körningar året runt.
 
 - **Policy**
   - PR-gruppering och **auto-rebase**; **target branch:** `test`.
