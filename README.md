@@ -287,11 +287,11 @@ Se [docs/TESTS.md](docs/TESTS.md) för fler detaljer om testerna.
     – *en körning, två grupper*:
     - `maven-security` (endast säkerhetsuppdateringar)
     - `maven-patch-minor` (patch/minor för direkta beroenden)
-  - **GitHub Actions (CI):** **måndagar 01:15 UTC** → PR till `test` (endast säkerhet)
+  - **GitHub Actions (CI):** **måndagar 01:15 UTC** → PR till `test`  
+    – versionbumps **grupperas** (patch/minor) och säkerhetsuppdateringar inkluderas när advisories finns.
 
 - **Policy**
-  - PR-gruppering (färre, mer strukturerade PRs) och **auto-rebase**.
-  - **Target branch:** `test` (CI kör först där).
+  - PR-gruppering och **auto-rebase**; **target branch:** `test`.
   - **Majors** (t.ex. `spring-boot`) ignoreras här och planeras separat.
   - **Branchskydd:** PR kräver **grön CI** (build + tester) och **Gitleaks** innan merge.
 

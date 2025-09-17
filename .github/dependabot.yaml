@@ -1,6 +1,6 @@
 version: 2
 updates:
-  # 1) Maven (applikationen) — säkerhet + patch/minor i samma regel (unikt combo)
+  # 1) Maven (app) – en regel, separerad via groups
   - package-ecosystem: "maven"
     directory: "/"
     schedule:
@@ -8,33 +8,37 @@ updates:
       day: "monday"
       time: "01:00"
       timezone: "UTC"
-    target-branch: "test"          # PRs går till arbetsbranchen; CI kör där först
+    target-branch: "test"
     open-pull-requests-limit: 5
     rebase-strategy: "auto"
     groups:
-      maven-security:              # samla säkerhetsuppdateringar
+      maven-security:              # endast säkerhetsuppdateringar
         applies-to: security-updates
         patterns: ["*"]
-      maven-patch-minor:           # samla icke-säkerhet (patch/minor)
-        update-types: ["patch", "minor"]
+      maven-patch-minor:           # icke-säkerhet (patch/minor)
+        update-types:
+          - "version-update:semver-patch"
+          - "version-update:semver-minor"
         patterns: ["*"]
-    ignore:                        # stora hopp planeras separat
+    ignore:                        # majors planeras separat
       - dependency-name: "org.springframework.boot:*"
-        update-types: ["major"]
+        update-types:
+          - "version-update:semver-major"
 
-  # 2) GitHub Actions (CI) — ENDAST SÄKERHET
+  # 2) GitHub Actions (CI) – veckovis, grouping; OBS: ingen 'security-updates-only' här
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"           # 15 min efter Maven
+      interval: "weekly"           # 01:15 UTC, 15 min efter Maven
       day: "monday"
       time: "01:15"
       timezone: "UTC"
-    security-updates-only: true
     target-branch: "test"
     open-pull-requests-limit: 3
     rebase-strategy: "auto"
     groups:
-      gha-security:
-        applies-to: security-updates
+      gha-patch-minor:
+        update-types:
+          - "version-update:semver-patch"
+          - "version-update:semver-minor"
         patterns: ["*"]
