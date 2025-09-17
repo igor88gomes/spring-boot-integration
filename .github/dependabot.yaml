@@ -1,21 +1,42 @@
 version: 2
 updates:
+  # 1) Maven (app) – en regel, separerad via groups
   - package-ecosystem: "maven"
     directory: "/"
     schedule:
-      interval: "weekly"           # kör en gång i veckan
+      interval: "weekly"           # måndagar kl 01:00 UTC
       day: "monday"
-      time: "03:00"
+      time: "01:00"
       timezone: "UTC"
-    security-updates-only: true    # endast säkerhetsuppdateringar (mindre brus)
-    open-pull-requests-limit: 2
+    target-branch: "test"
+    open-pull-requests-limit: 5
+    rebase-strategy: "auto"
+    groups:
+      maven-security:              # endast säkerhetsuppdateringar
+        applies-to: security-updates
+        patterns: ["*"]
+      maven-patch-minor:           # icke-säkerhet (patch/minor)
+        update-types: ["patch", "minor"]     # <-- OBS: enkel form här
+        patterns: ["*"]
+    allow:                         # lägre risk: endast direkta beroenden
+      - dependency-type: "direct"
+    ignore:                        # majors planeras separat
+      - dependency-name: "org.springframework.boot:*"
+        update-types:
+          - "version-update:semver-major"    # <-- semver-form bara i ignore
 
+  # 2) GitHub Actions (CI) – veckovis; grouping (ingen security-only flag här)
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "weekly"           # 01:15 UTC, 15 min efter Maven
       day: "monday"
-      time: "03:00"
+      time: "01:15"
       timezone: "UTC"
-    security-updates-only: true
-    open-pull-requests-limit: 2
+    target-branch: "test"
+    open-pull-requests-limit: 3
+    rebase-strategy: "auto"
+    groups:
+      gha-patch-minor:
+        update-types: ["patch", "minor"]     # <-- enkel form
+        patterns: ["*"]
