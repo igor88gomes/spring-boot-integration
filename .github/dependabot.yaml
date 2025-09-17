@@ -16,16 +16,16 @@ updates:
         applies-to: security-updates
         patterns: ["*"]
       maven-patch-minor:           # icke-säkerhet (patch/minor)
-        update-types:
-          - "version-update:semver-patch"
-          - "version-update:semver-minor"
+        update-types: ["patch", "minor"]     # <-- OBS: enkel form här
         patterns: ["*"]
+    allow:                         # lägre risk: endast direkta beroenden
+      - dependency-type: "direct"
     ignore:                        # majors planeras separat
       - dependency-name: "org.springframework.boot:*"
         update-types:
-          - "version-update:semver-major"
+          - "version-update:semver-major"    # <-- semver-form bara i ignore
 
-  # 2) GitHub Actions (CI) – veckovis, grouping; OBS: ingen 'security-updates-only' här
+  # 2) GitHub Actions (CI) – veckovis; grouping (ingen security-only flag här)
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
@@ -38,7 +38,5 @@ updates:
     rebase-strategy: "auto"
     groups:
       gha-patch-minor:
-        update-types:
-          - "version-update:semver-patch"
-          - "version-update:semver-minor"
+        update-types: ["patch", "minor"]     # <-- enkel form
         patterns: ["*"]
