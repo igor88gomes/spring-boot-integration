@@ -1,4 +1,4 @@
- checkout# Spring Boot Integration – ICC Demo  
+# Spring Boot Integration – ICC Demo  
 
 [![CI – main](https://github.com/igor88gomes/spring-boot-integration/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/igor88gomes/spring-boot-integration/actions/workflows/ci.yaml)
 [![CD – main](https://github.com/igor88gomes/spring-boot-integration/actions/workflows/docker-publish.yaml/badge.svg?branch=main)](https://github.com/igor88gomes/spring-boot-integration/actions/workflows/docker-publish.yaml)
@@ -23,7 +23,7 @@
        alt="CI/CD-pipeline – Spring Boot, Docker och GitHub Actions"
        width="900">
 </p>
-<p align="center"><em><strong>Bild 2.</strong> CI/CD-pipeline – bygg, test (JaCoCo/JavaDoc) och publicering till Docker Hub.</em></p>
+<p align="center"><em><strong>Bild 2.</strong> Bild 2. CI/CD-pipeline – bygg, test (JaCoCo/JavaDoc/Stubs), säkerhetsskanning (Gitleaks/Trivy med SARIF), och publicering till Docker Hub samt SBOM-generering.</em></p>
 
 ## Projektinformation
 
@@ -35,7 +35,7 @@ Det kombinerar asynkron kommunikation, spårbarhet, testbarhet och full CI/CD-au
 - Spårbarhet: JSON-loggar med korrelations-ID (MDC/JMSCorrelationID) end-to-end.
 - Testbarhet: enhet/web-slice, JPA/H2, BDD (Cucumber) och kontrakt (SCC).
 - Leverans: GitHub Actions kör tester i CI (H2) och **pushar först en kandidat-image till GHCR (privat)**; efter **Trivy-kvalitetsgrind** (**CRITICAL blockerar**) **promoteras med samma digest** till Docker Hub (`:latest`).
-- **Säkerhet & supply chain:** Trivy-gate (CRITICAL stop), **SBOM/OCI-etiketter**, **Gitleaks** och **Dependabot**.
+- **Säkerhet & supply chain:** Trivy-gate (CRITICAL stop), **SBOM/OCI-etiketter**, **Gitleaks (PR-gate)** och **Dependabot**.
 
 **Teknikstack (kort):** Java/Spring Boot 3, ActiveMQ (JMS), PostgreSQL, Docker/Compose.  
 *Test/CI-miljö:* H2 (in-memory, profil `test`). Inbäddad ActiveMQ (`vm://embedded`) startas för BDD/E2E; SCC kör mot MVC-slice (utan broker).
@@ -217,22 +217,40 @@ Se [docs/TESTS.md](docs/TESTS.md) för fler detaljer om testerna.
 
 > **Obs:** Java 17 ingår i applikationsimagen; inget lokalt JDK krävs.
 
+### Branch-strategi (kort)
+
+- Dagligt arbete i `test`; PR → `main` med **squash-merge**.
+- Obligatoriska checks på PR: **CI** + **Secret Scan (Gitleaks)**.
+- Release: **push till `main`** triggar CD och publicering till Docker Hub.
+- **Regler (`main`):** **squash-only**, **linear history**, **blockera force pushes**, **kräver uppdaterad branch före merge**, och **obligatoriska status checks:** `build` + `gitleaks`.
+
 ### Bygg / CI & dokumentation (GitHub Actions)
 
 - **Workflow:** `.github/workflows/ci.yaml`
-- **Trigger:** push/PR till `main` och `test`
+- **Trigger:** push till `main` och `test`; PR till `main`
 
 - **Steg:**
   - **Steg 1 – Checkout & JDK 17:** checka ut källkod och konfigurera Java.
   - **Steg 2 – Bygg & tester (Maven/H2):** kör `mvn verify` med H2 för isolerade tester.
   - **Steg 3 – Kodtäckning (JaCoCo):** generera rapport och ladda upp som artefakt.
   - **Steg 4 – JavaDoc (endast `main`):** generera och ladda upp som artefakt.
-  - **Steg 5 – Stubs (SCC), (endast `main`):** generera WireMock-stubs från kontrakt och ladda upp.
+  - **Steg 5 – Stubs (SCC), (endast `main`):** stubs **genereras av Spring Cloud Contract under `mvn verify`** och CI **laddar upp `*-stubs.jar` som artefakt** (om finns).
 
 - **Artefakter:**
   - `jacoco-report` (main/test, **retention 14 dagar**)
   - `javadocs` (endast `main`, **14 dagar**)
   - `stubs` (endast `main`, **14 dagar**) – genererade av Spring Cloud Contract för konsumenttester
+
+#### Secret scanning (Gitleaks)
+
+- **Workflow (fristående):** `secret-scan.yaml` körs separat från CI.
+- **Schema (UTC):** måndagar **03:00 UTC** (full historikskanning + SARIF).
+- **Policy:** PR blockeras vid fynd (exit ≠ 0).
+- **SARIF:** genereras och laddas upp **vid push till `main`** och vid den schemalagda körningen till *Security → Code scanning*.
+- **Beteende:**
+  - PR = snabb skanning av ändringar (`--no-git`)
+  - Push/schedule = full historik (checkout `fetch-depth: 0`) + SARIF
+- **Konfig:** `.gitleaks.toml` (ignorerar `.env.example`, `application-test.properties`; placeholders: `changeme`, `to-be-set`, `example`, `dummy`).
 
 ### Distribution (CD) – Docker-image (GitHub Actions)
 
@@ -248,15 +266,33 @@ Se [docs/TESTS.md](docs/TESTS.md) för fler detaljer om testerna.
   4. **SBOM (insyn):** **CycloneDX SBOM** (`sbom.cdx.json`) laddas upp som **Actions-artefakt** (**retention 14 dagar**).
   5. **Rensning:** temporära Docker Desktop-buildfiler (`*.dockerbuild`) tas bort i jobben för att hålla run-loggen ren.
 
-- **Säkerhet & kontroll:**
-  - **Concurrency:** `concurrency.group=docker-publish-${{ github.ref }}` och `cancel-in-progress: true` förhindrar parallella dubbletter.
-  - **Retention (GHCR):** candidate-images märks bl.a. med  
-    `org.opencontainers.image.ref.name=candidate` och `ghcr.io/retention-days=14` → autosanering efter 14 dagar.
-  - **Behörigheter:** workflow ger **packages: write**, **security-events: write**, **contents: read** för att kunna publicera images och skicka SARIF.
+#### Säkerhet & kontroll
+
+- **Concurrency:** `concurrency.group=docker-publish-${{ github.ref }}` och `cancel-in-progress: true` förhindrar parallella dubbletter.
+- **Retention (GHCR):** candidate-images märks bl.a. med  
+  `org.opencontainers.image.ref.name=candidate` och `ghcr.io/retention-days=14` → autosanering efter 14 dagar.
+- **Behörigheter:** workflow ger **packages: write**, **security-events: write**, **contents: read** för att kunna publicera images och skicka SARIF.
 
 - **Resultat:**
+
   - **GHCR (privat):** *candidate* (per-commit) – för skanning och spårbarhet.
   - **Docker Hub (publik):** `:latest` – **multi-arch** och redo för `docker/podman-compose`.
+
+## Säkerhet & Underhåll
+
+### Beroendehantering (Dependabot)
+
+- **Säkerhetsuppdateringar (UTC):**
+  - Maven: måndagar 01:00 UTC → PR till `test`
+  - GitHub Actions: måndagar 01:15 UTC → PR till `test`
+- **Icke-säkerhet (patch/minor, UTC):**
+  - Maven (direkta beroenden): måndagar 01:30 UTC → PR till `test`
+- Policy: PR-gruppering, auto-rebase, majors ignoreras (planeras separat).
+- Branchskydd kräver grön CI + Gitleaks innan merge.
+
+### Kodskanning (SARIF)
+
+Alla säkerhetsresultat från både **Gitleaks** (hemligheter) och **Trivy** (image-skanning) laddas upp som **SARIF** till *Security → Code scanning* för central analys och historik.
 
 ## Projektstruktur
 

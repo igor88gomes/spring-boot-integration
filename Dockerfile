@@ -16,14 +16,25 @@ RUN --mount=type=cache,target=/root/.m2 \
 FROM eclipse-temurin:17-jdk
 WORKDIR /app
 
-# Kör i UTC för konsekventa tider (JVM)
+# JVM i UTC (konsekventa tider)
 ENV JAVA_TOOL_OPTIONS=""
 
-# Skapa loggmapp och ge skrivbehörighet
-RUN mkdir -p /app/logs && chmod -R 777 /app/logs
+# --- HÅRDNING: kör som icke-root ---
+# Skapa systemanvändare/grupp utan inloggningsshell
+ARG APP_UID=10001
+ARG APP_GID=10001
+RUN groupadd --system --gid ${APP_GID} app \
+ && useradd  --system --no-create-home --uid ${APP_UID} --gid ${APP_GID} \
+             --shell /usr/sbin/nologin app
 
-# Kopiera byggd JAR från byggsteget
-COPY --from=build /app/target/integration-0.0.1-SNAPSHOT.jar app.jar
+# Skapa loggmapp och ge ägarskap till app-användaren
+RUN mkdir -p /app/logs && chown -R app:app /app
+
+# Kopiera byggd JAR från byggsteget (med rätt ägarskap)
+COPY --from=build --chown=app:app /app/target/integration-0.0.1-SNAPSHOT.jar app.jar
+
+# Kör som icke-root
+USER app:app
 
 # Starta applikationen
 ENTRYPOINT ["java", "--add-opens=java.base/java.io=ALL-UNNAMED", "-Duser.timezone=UTC", "-jar", "app.jar"]
