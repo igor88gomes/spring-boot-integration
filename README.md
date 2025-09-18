@@ -254,6 +254,17 @@ Se [docs/TESTS.md](docs/TESTS.md) för fler detaljer om testerna.
   - Push/schedule = full historik (checkout `fetch-depth: 0`) + SARIF
 - **Konfig:** `.gitleaks.toml` (ignorerar `.env.example`, `application-test.properties`; placeholders: `changeme`, `to-be-set`, `example`, `dummy`).
 
+#### Secret scanning (Gitleaks)
+
+- **Workflow (fristående):** `secret-scan.yaml` körs separat från CI.
+- **Schema (UTC):** måndagar **03:00 UTC** (full historikskanning + SARIF).
+- **Policy:** PR blockeras vid fynd (exit ≠ 0).
+- **SARIF:** genereras och laddas upp **vid push till `main`** och vid den schemalagda körningen till *Security → Code scanning*.
+- **Beteende:**
+  - PR = snabb skanning av ändringar (`--no-git`)
+  - Push/schedule = full historik (checkout `fetch-depth: 0`) + SARIF
+- **Konfig:** `.gitleaks.toml` (ignorerar `.env.example`, `application-test.properties`; placeholders: `changeme`, `to-be-set`, `example`, `dummy`).
+
 ### Distribution (CD) – Docker-image (GitHub Actions)
 
 - **Workflow:** `.github/workflows/docker-publish.yaml`

@@ -55,3 +55,4 @@ updates:
       gha-patch-minor:
         update-types: ["patch", "minor"]     # <-- enkel form
         patterns: ["*"]
+
