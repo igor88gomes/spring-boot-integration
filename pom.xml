@@ -9,7 +9,6 @@
     <packaging>jar</packaging>
 
     <name>spring-boot-integration</name>
-    <!-- Beskrivning: PostgreSQL i drift, H2 endast för tester -->
     <description>Integrationsprojekt med Spring Boot, ActiveMQ och PostgreSQL (H2 endast för tester)</description>
 
 
