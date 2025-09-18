@@ -8,28 +8,40 @@
         </encoder>
     </appender>
 
-    <!-- Loggar till en fil som roteras dagligen -->
-    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>logs/app.log</file>
+    <!-- Allt nedan (fil + root som refererar fil) gäller ENDAST när profilen INTE är 'stdout-only' -->
+    <springProfile name="!stdout-only">
 
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+        <!-- Loggar till en fil som roteras dagligen -->
+        <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>logs/app.log</file>
 
-            <!-- Skapar en ny loggfil varje dag (UTC) -->
-            <fileNamePattern>logs/app.%d{yyyy-MM-dd, UTC}.log</fileNamePattern>
+            <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+                <!-- Skapar en ny loggfil varje dag (UTC) -->
+                <fileNamePattern>logs/app.%d{yyyy-MM-dd, UTC}.log</fileNamePattern>
 
-            <!-- Behåller loggfiler i upp till 7 dagar -->
-            <maxHistory>7</maxHistory>
-        </rollingPolicy>
+                <!-- Behåller loggfiler i upp till 7 dagar -->
+                <maxHistory>7</maxHistory>
+            </rollingPolicy>
 
-        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
-            <!-- Tidszon för tidsstämplar i loggar -->
-            <timeZone>UTC</timeZone>
-        </encoder>
-    </appender>
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                <!-- Tidszon för tidsstämplar i loggar -->
+                <timeZone>UTC</timeZone>
+            </encoder>
+        </appender>
 
-    <!-- Standardloggnivå och aktiva appenders -->
-    <root level="INFO">
-        <appender-ref ref="CONSOLE" />
-        <appender-ref ref="FILE" />
-    </root>
+        <!-- Standardloggnivå och aktiva appenders -->
+        <root level="INFO">
+            <appender-ref ref="CONSOLE" />
+            <appender-ref ref="FILE" />
+        </root>
+    </springProfile>
+
+    <!-- Valfritt: när profilen 'stdout-only' är aktiv, skriv endast till konsolen (ingen fil). -->
+    <springProfile name="stdout-only">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE" />
+            <!-- Ingen FILE-appendere här -->
+        </root>
+    </springProfile>
+
 </configuration>

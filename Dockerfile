@@ -16,13 +16,8 @@ RUN --mount=type=cache,target=/root/.m2 \
 FROM eclipse-temurin:17-jdk
 WORKDIR /app
 
-# JVM i UTC (konsekventa tider)
+# Kör i UTC för konsekventa tider (JVM)
 ENV JAVA_TOOL_OPTIONS=""
-
-# Installera curl för healthcheck (inne i containern)
-RUN apt-get update \
- && apt-get install -y --no-install-recommends curl \
- && rm -rf /var/lib/apt/lists/*
 
 # HÅRDNING: kör som icke-root
 # Skapa systemanvändare/grupp utan inloggningsshell
@@ -32,10 +27,7 @@ RUN groupadd --system --gid ${APP_GID} app \
  && useradd  --system --no-create-home --uid ${APP_UID} --gid ${APP_GID} \
              --shell /usr/sbin/nologin app
 
-# Skapa loggmapp och ge ägarskap till app-användaren
-RUN mkdir -p /app/logs && chown -R app:app /app
-
-# Kopiera byggd JAR från byggsteget (med rätt ägarskap)
+# Kopiera byggd JAR från byggsteget
 COPY --from=build --chown=app:app /app/target/integration-0.0.1-SNAPSHOT.jar app.jar
 
 # Kör som icke-root
