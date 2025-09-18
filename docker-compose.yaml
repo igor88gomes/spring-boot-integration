@@ -47,8 +47,12 @@ services:
         condition: service_healthy
     ports:
       - "8080:8080"
+    # Kör 100% som icke-root (säkerhet)
+    user: "10001:10001"
     volumes:
-      - ./logs:/app/logs     # Loggfiler delas mellan container och värd
+      # Logik ändrad: appen skriver till en NAMNGIVEN VOLYM (alltid skrivbar för icke-root).
+      # En separat sidecar (nedan) exporterar automatiskt till ./logs på värden.
+      - app_logs:/app/logs
     networks:
       - integration-net
     healthcheck:
@@ -57,8 +61,36 @@ services:
       timeout: 5s
       retries: 5
 
+  # Sidecar: exporterar loggar från volymen till ./logs på värden — utan root, inga extra steg.
+  log-exporter:
+    image: alpine:3.20
+    container_name: log-exporter
+    # Kör som icke-root (1000:1000 matchar den vanligaste användaren på värden)
+    user: "1000:1000"
+    depends_on:
+      integration-app:
+        condition: service_started
+    volumes:
+      - app_logs:/in:ro    # läs från appens volym (read-only)
+      - ./logs:/out        # skriv till repo-mappen på värden
+      # Om någon kör SELinux enforcing och behöver label: använd ./logs:/out:Z
+    command:
+      - /bin/sh
+      - -lc
+      - |
+        mkdir -p /out
+        # Enkel och portabel kontinuerlig kopiering
+        while true; do
+          cp -a /in/. /out/ 2>/dev/null || true
+          sleep 2
+        done
+    networks:
+      - integration-net
+    restart: unless-stopped
+
 volumes:
   postgres_data:
+  app_logs:
 
 networks:
   integration-net:

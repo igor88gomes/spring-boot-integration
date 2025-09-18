@@ -19,7 +19,12 @@ WORKDIR /app
 # JVM i UTC (konsekventa tider)
 ENV JAVA_TOOL_OPTIONS=""
 
-# --- HÅRDNING: kör som icke-root ---
+# Installera curl för healthcheck (inne i containern)
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends curl \
+ && rm -rf /var/lib/apt/lists/*
+
+# HÅRDNING: kör som icke-root
 # Skapa systemanvändare/grupp utan inloggningsshell
 ARG APP_UID=10001
 ARG APP_GID=10001
