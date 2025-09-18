@@ -264,15 +264,20 @@ Alla artifacts hämtas via **Actions** i GitHub:
 - **Stubs** (endast `main`)  
   → Använd innehållet som **WireMock-stubs** för konsumenttester.
 
+- **Surefire-rapporter** (**endast vid fel**, **14 dagar**)  
+  → `target/surefire-reports/**` + `*-jvmRun*.dump` + `*.dumpstream` laddas upp automatiskt om bygget misslyckas (för felsökning i Actions).
+
 ### CD-artifacts
 
 - **SBOM (CycloneDX)**  
   → Öppna `sbom.cdx.json` i ZIP:en.
 
 #### Visa säkerhetsfynd (Code scanning)
+
 1. Öppna **Security → Code scanning** i GitHub.
-2. Filtrera på verktyg: **Trivy**.
-3. **CRITICAL** blockerar i **Trivy quality gate**; **HIGH** rapporteras här som **SARIF**.
+2. Filtrera på verktyg: **Trivy** och **Gitleaks**.
+    - **Trivy:** **CRITICAL** blockerar i *quality gate*; **HIGH** rapporteras som **SARIF**.
+    - **Gitleaks:** **SARIF** laddas upp vid **push till `main`** och **schemalagd körning**; i **PR** körs snabb skanning som gate (utan SARIF).
 
 > Tips: Du hittar även digesten och multi-arch-info via `docker buildx imagetools inspect <image>:<tag>` om du vill dubbelkolla promotionen.
 

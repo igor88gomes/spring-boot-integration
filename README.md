@@ -235,11 +235,24 @@ Se [docs/TESTS.md](docs/TESTS.md) för fler detaljer om testerna.
   - **Steg 3 – Kodtäckning (JaCoCo):** generera rapport och ladda upp som artefakt.
   - **Steg 4 – JavaDoc (endast `main`):** generera och ladda upp som artefakt.
   - **Steg 5 – Stubs (SCC), (endast `main`):** stubs **genereras av Spring Cloud Contract under `mvn verify`** och CI **laddar upp `*-stubs.jar` som artefakt** (om finns).
+  - **Steg 6 – Felsökning (endast vid fel):** **ladda upp Surefire-rapporter** (`target/surefire-reports/**` + dumpfiler) för att förenkla felsökning i Actions.
 
 - **Artefakter:**
   - `jacoco-report` (main/test, **retention 14 dagar**)
   - `javadocs` (endast `main`, **14 dagar**)
   - `stubs` (endast `main`, **14 dagar**) – genererade av Spring Cloud Contract för konsumenttester
+  - `surefire-reports` (**endast vid fel**, **14 dagar**) – testrapporter och dumpfiler för felsökning
+
+#### Secret scanning (Gitleaks)
+
+- **Workflow (fristående):** `secret-scan.yaml` körs separat från CI.
+- **Schema (UTC):** måndagar **03:00 UTC** (full historikskanning + SARIF).
+- **Policy:** PR blockeras vid fynd (exit ≠ 0).
+- **SARIF:** genereras och laddas upp **vid push till `main`** och vid den schemalagda körningen till *Security → Code scanning*.
+- **Beteende:**
+  - PR = snabb skanning av ändringar (`--no-git`)
+  - Push/schedule = full historik (checkout `fetch-depth: 0`) + SARIF
+- **Konfig:** `.gitleaks.toml` (ignorerar `.env.example`, `application-test.properties`; placeholders: `changeme`, `to-be-set`, `example`, `dummy`).
 
 #### Secret scanning (Gitleaks)
 
