@@ -9,13 +9,14 @@
     <packaging>jar</packaging>
 
     <name>spring-boot-integration</name>
+    <!-- Beskrivning: PostgreSQL i drift, H2 endast för tester -->
     <description>Integrationsprojekt med Spring Boot, ActiveMQ och PostgreSQL (H2 endast för tester)</description>
 
 
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.5.5</version>
+        <version>3.3.2</version>
     </parent>
 
     <properties>
@@ -95,19 +96,19 @@
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-java</artifactId>
-            <version>7.28.2</version>
+            <version>7.17.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-junit-platform-engine</artifactId>
-            <version>7.28.2</version>
+            <version>7.17.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-spring</artifactId>
-            <version>7.28.2</version>
+            <version>7.17.0</version>
             <scope>test</scope>
         </dependency>
 
@@ -115,14 +116,14 @@
         <dependency>
             <groupId>org.awaitility</groupId>
             <artifactId>awaitility</artifactId>
-            <version>4.3.0</version>
+            <version>4.2.0</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>org.junit.platform</groupId>
             <artifactId>junit-platform-suite</artifactId>
-            <version>1.13.4</version>
+            <version>1.10.2</version>
             <scope>test</scope>
         </dependency>
 
@@ -140,6 +141,7 @@
             <version>2.0.1</version>
             <scope>test</scope>
         </dependency>
+
 
     </dependencies>
 
@@ -164,20 +166,16 @@
                 </configuration>
             </plugin>
 
+
             <!-- Kör alla tester med profilen "test" så att H2 (in-memory) används i testkörningar -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.5.4</version>
+                <version>3.2.5</version>
                 <configuration>
-                    <!-- Stäng av module-path för stabil Cucumber-upptäckt på JUnit Platform -->
-                    <useModulePath>false</useModulePath>
-
                     <systemPropertyVariables>
                         <!-- Aktiverar test-profilen under 'mvn test' / CI -->
                         <spring.profiles.active>test</spring.profiles.active>
-                        <!-- (valfritt) konsekventa testnamn från Cucumber i JUnit Platform -->
-                        <cucumber.junit-platform.naming-strategy>long</cucumber.junit-platform.naming-strategy>
                     </systemPropertyVariables>
                 </configuration>
             </plugin>
@@ -199,7 +197,7 @@
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.8.13</version>
+                <version>0.8.12</version>
                 <executions>
                     <execution>
                         <goals>
@@ -215,7 +213,6 @@
                     </execution>
                 </executions>
             </plugin>
-
         </plugins>
     </build>
 </project>

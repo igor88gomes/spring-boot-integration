@@ -24,6 +24,21 @@ updates:
       - dependency-name: "org.springframework.boot:*"
         update-types:
           - "version-update:semver-major"    # <-- semver-form bara i ignore
+      # Håll testplattformen stabil – uppdatera manuellt vid behov
+      - dependency-name: "org.junit.platform:*"
+        update-types:
+          - "version-update:semver-minor"
+          - "version-update:semver-patch"
+      # Håll Cucumber stabil – undvik drift mellan engine/annotations/spring
+      - dependency-name: "io.cucumber:*"
+        update-types:
+          - "version-update:semver-minor"
+          - "version-update:semver-patch"
+      # Låt Surefire stanna på känd stabil version
+      - dependency-name: "org.apache.maven.plugins:maven-surefire-plugin"
+        update-types:
+          - "version-update:semver-minor"
+          - "version-update:semver-patch"
 
   # 2) GitHub Actions (CI) – veckovis; grouping (ingen security-only flag här)
   - package-ecosystem: "github-actions"
