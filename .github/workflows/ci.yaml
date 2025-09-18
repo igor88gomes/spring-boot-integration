@@ -112,4 +112,15 @@ jobs:
         if: github.ref == 'refs/heads/main' && steps.stubs_check.outputs.has != 'true'
         run: echo "stubs saknas/ogiltig; hoppar över upload."
 
-
+      # Ladda upp Surefire-rapporter bara om jobbet misslyckas (felsökning)
+      - name: Ladda upp Surefire-rapporter vid fel
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: |
+            target/surefire-reports/**
+            **/*-jvmRun*.dump
+            **/*.dumpstream
+          if-no-files-found: ignore
+          retention-days: 14
