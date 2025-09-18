@@ -81,7 +81,7 @@ services:
         mkdir -p /out
         # Enkel och portabel kontinuerlig kopiering
         while true; do
-          cp -a /in/. /out/ 2>/dev/null || true
+          cp -r /in/. /out/ 2>/dev/null || true
           sleep 2
         done
     networks:
