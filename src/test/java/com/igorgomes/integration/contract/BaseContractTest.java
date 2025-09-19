@@ -9,7 +9,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -34,10 +34,10 @@ class BaseContractTest {
     @Autowired
     private MockMvc mockMvc; // Mockad MVC-miljö (ingen riktig server)
 
-    @MockBean
+    @MockitoBean
     private MessageProducer producer; // mockad JMS-producent
 
-    @MockBean
+    @MockitoBean
     private MessageRepository repository; // mockad JPA-repository (krävs av controllern)
 
     @BeforeEach

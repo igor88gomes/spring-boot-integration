@@ -3,8 +3,8 @@ package com.igorgomes.integration;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 /**
  * Enhetstest för MessageConsumer-klassen.
@@ -14,7 +14,7 @@ import org.springframework.test.context.ActiveProfiles;
 @SpringBootTest
 class MessageConsumerTest {
 
-    @MockBean
+    @MockitoBean
     private MessageRepository messageRepository;
 
     /**
