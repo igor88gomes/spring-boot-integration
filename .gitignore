@@ -15,12 +15,7 @@ target/
 *.ear
 /out/
 
-# Loggfiler (skapade av Logback)
-# Ignorera alla loggfiler i mappen logs/, men behåll själva mappen i Git
-logs/*
-!logs/.gitkeep
-
-# Ignorera alla andra loggfiler i projektet
+# Ignorera alla loggfiler i projektet
 *.log
 logback.log
 
