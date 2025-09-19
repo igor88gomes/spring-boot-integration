@@ -26,16 +26,17 @@ jobs:
           cache: maven
 
       - name: Build & test (JaCoCo)
-        run: mvn -B clean verify
+        run: mvn -B clean verify jacoco:report
 
-      # Kontroll: JaCoCo-rapport finns och är läsbar (HTML)
+      # Kontroll: JaCoCo-rapport (HTML eller XML) finns och är giltig
       - name: Kontrollera JaCoCo (HTML)
         id: jacoco_check
         if: always()
         run: |
           set -euo pipefail
-          FILE="target/site/jacoco/index.html"
-          if [ -s "$FILE" ] && grep -qi "jacoco" "$FILE"; then
+          HTML="target/site/jacoco/index.html"
+          XML="target/site/jacoco/jacoco.xml"
+          if { [ -s "$HTML" ] && grep -qi "jacoco" "$HTML"; } || [ -s "$XML" ]; then
             echo "has=true" >> "$GITHUB_OUTPUT"
           else
             echo "has=false" >> "$GITHUB_OUTPUT"
