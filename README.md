@@ -1,4 +1,4 @@
-# Spring Boot Integration – ICC Demo  
+# Spring Boot Integration Demo – ICC & CI/CD
 
 [![CI – main](https://github.com/igor88gomes/spring-boot-integration/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/igor88gomes/spring-boot-integration/actions/workflows/ci.yaml)
 [![CD – main](https://github.com/igor88gomes/spring-boot-integration/actions/workflows/docker-publish.yaml/badge.svg?branch=main)](https://github.com/igor88gomes/spring-boot-integration/actions/workflows/docker-publish.yaml)
@@ -27,8 +27,10 @@
 
 ## Projektinformation
 
-Detta projekt är en komplett integrationslösning inspirerad av ICC-mönster, **utvecklad från grunden**.
-Det kombinerar asynkron kommunikation, spårbarhet, testbarhet och full CI/CD-automatisering.
+Detta projekt är en **demonstration** av integrationsmönster inspirerade av ICC (Integration Competency Center).  
+Fokus ligger på att visa **asynkron kommunikation**, **spårbarhet** och **observabilitet**, samt en komplett **CI/CD-pipeline** med säkerhets och kvalitetskontroller.
+
+Målet är inte att täcka alla integrationsscenarier, utan att ge en praktisk inblick i hur olika tekniker kan kombineras i ett modernt DevOps-flöde.
 
 **Höjdpunkter**
 - Händelsedriven väg: REST API → JMS/ActiveMQ → konsument → JPA/PostgreSQL.
@@ -52,8 +54,8 @@ Det kombinerar asynkron kommunikation, spårbarhet, testbarhet och full CI/CD-au
 
 - [Bygg / CI & dokumentation (GitHub Actions)](#bygg--ci--dokumentation-github-actions)
 - [Distribution (CD) – Docker-image (GitHub Actions)](#distribution-cd--docker-image-github-actions)
-- [docs/USAGE.md#ci-artifacts](docs/USAGE.md#ci-artifacts)
-- [docs/USAGE.md#cd-artifacts](docs/USAGE.md#cd-artifacts)
+- [docs/ARTIFACTS.md#ci-artifacts](docs/ARTIFACTS.md#ci-artifacts)
+- [docs/ARTIFACTS.md#cd-artifacts](docs/ARTIFACTS.md#cd-artifacts)
 ---
 
 ## Arkitektur & korrelation (översikt)
@@ -110,16 +112,19 @@ curl http://localhost:8080/actuator/info
 
 > **(12‑factor):** Sätt kö-namn via `app.queue.name` (fallback `test-queue`) eller env `APP_QUEUE_NAME` för konfiguration per miljö.
 
-## Spårbarhet & korrelations-ID
+## Spårbarhet & korrelations-ID (översikt)
 
-### Loggexempel
+
+Applikationen loggar i **JSON** (Logback + MDC) och inkluderar ett **messageId** som följer hela flödet (Controller → Producer/JMS → Consumer/JPA). 
+I container-miljö körs **stdout-only** – loggar läses via `docker|podman logs`.
 
 **Affärs-anrop:**
+
 ```bash
 curl -X POST "http://localhost:8080/api/send?message=TestIntegration"
 ```
 
-**`logs/app.log`**
+**Loggexempel (förkortat):**
 
 ```json
 [
@@ -139,7 +144,8 @@ curl -X POST "http://localhost:8080/api/send?message=TestIntegration"
   }
 ]
 ```
-> Exemplet visar end-to-end-korrelation: producenten skickar `messageId` i **JMS-headern** och konsumenten läser headern och sätter samma `messageId` i MDC. Därmed kan samma ID följas genom hela flödet.
+> Producenten skickar `messageId` i **JMS-headern**; konsumenten läser headern och sätter samma `messageId` i MDC.  
+> Detta gör att samma `messageId` kan följas från HTTP-ingången, via kön, till persistens.
 
 ### Korrelationsflöde (MDC + JMS)
 - **Controller**: Säkerställer att `messageId` finns i MDC för varje anrop; skapar UUID om det saknas och tar bort nyckeln i `finally` endast om den sattes här.
@@ -158,7 +164,7 @@ Se [docs/USAGE.md](docs/USAGE.md) för fler detaljer och körningskommandon.
 - **Kontrakt/BDD:** Säkerställer 200/400 och kedjan **HTTP → JMS → DB** end-to-end.
 
 Se [docs/TESTS.md](docs/TESTS.md) för fler detaljer om testerna.  
-**Artefakter (CI/CD):** se [docs/USAGE.md#artefakter-cicd](docs/USAGE.md#artefakter-cicd).
+**Artefakter (CI/CD):** se [docs/ARTIFACTS.md](docs/ARTIFACTS.md).
 
 ## Funktionalitet
 
@@ -227,13 +233,13 @@ Se [docs/TESTS.md](docs/TESTS.md) för fler detaljer om testerna.
 ### Bygg / CI & dokumentation (GitHub Actions)
 
 - **Workflow:** `.github/workflows/ci.yaml`
-- **Trigger:** push till `main` och `test`; PR till `main`
+- **Trigger:** push till `main` och `test`; PR till `main` 
 
 - **Steg:**
   - **Steg 1 – Checkout & JDK 17:** checka ut källkod och konfigurera Java.
   - **Steg 2 – Bygg & tester (Maven/H2):** kör `mvn verify` med H2 för isolerade tester.
   - **Steg 3 – Kodtäckning (JaCoCo):** generera rapport och ladda upp som artefakt.
-  - **Steg 4 – JavaDoc (endast `main`):** generera och ladda upp som artefakt.
+  - **Steg 4 – JavaDoc (endast `main` vid commit-/PR-meddelandet innehåller `"[javadoc]"`):** generera och ladda upp som artefakt.
   - **Steg 5 – Stubs (SCC), (endast `main`):** stubs **genereras av Spring Cloud Contract under `mvn verify`** och CI **laddar upp `*-stubs.jar` som artefakt** (om finns).
   - **Steg 6 – Felsökning (endast vid fel):** **ladda upp Surefire-rapporter** (`target/surefire-reports/**` + dumpfiler) för att förenkla felsökning i Actions.
 
@@ -325,7 +331,6 @@ spring-boot-integration/
 ├── dependabot.yaml         # Automatiska dependency-uppdateringar
 ├── .env.example            # Exempel på miljövariabler (inga hemligheter i koden)
 ├── docs/                   # Dokumentation (USAGE.md, TESTS.md) & bilder (docs/images)
-├── logs/                   # Lokala loggar (volym i Docker; ignoreras av Git)
 ├── src/                    # Källkod (main/) och tester (test/)
 ├── pom.xml                 # Maven-konfiguration (beroenden/plugins)
 ├── Dockerfile              # Bygger applikationsimagen
@@ -337,6 +342,7 @@ spring-boot-integration/
 
 - **Användning:** [docs/USAGE.md](docs/USAGE.md)  
 - **Tester:** [docs/TESTS.md](docs/TESTS.md)
+- **Artefakter** [docs/ARTIFACTS.md](docs/ARTIFACTS.md)
 
 ## Kontakt
 

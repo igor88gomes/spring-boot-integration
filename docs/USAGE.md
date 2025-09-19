@@ -38,21 +38,18 @@ cp .env.example .env
 
 ```bash
 docker compose up --build -d
-# alt: podman-compose up --build -d
 ```
 
 ### 4) Kontrollera körande containrar
 
 ```bash
 docker ps
-# alt: podman ps
 ```
 
 ### 5) Stoppa och rensa nätverk/containers
 
 ```bash
 docker compose down
-# alt: podman-compose down
 ```
 
 ---
@@ -146,25 +143,19 @@ curl -i -X POST http://localhost:8080/api/send -d "message=   "     # form body
 
 ## Loggar och spårbarhet
 
-Applikationen loggar i **JSON-format** (Logback + Logstash Encoder) till **konsol** och roterande **fil** i `logs/`.
+Applikationen loggar i **JSON-format** (Logback + MDC) direkt till **stdout**.  
+I container-miljö läses loggar via `docker logs`.
 
-- Aktiv fil: `logs/app.log` (dagens loggar)
-- Rotation: `logs/app.YYYY-MM-DD.log` (daglig), historik 7 dagar
+### Visa loggar Exempel
 
-> På den första logghändelsen efter midnatt roteras gårdagens logg till `logs/app.YYYY-MM-DD.log`
+**Som JSON (med jq):**
+```bash
+docker logs integration-app | jq
 
-**Exempelanvändning med loggfiler 
-
-> Loggarna är i JSON-format och kan läsas direkt med cat/tail eller formateras med jq.
-
- ```bash
-jq . logs/app.log
 ```
-
-Visa loggar från applikationscontainern:
+**Råa loggar (utan jq):**
 ```bash
 docker logs integration-app
-# alt: podman logs integration-app
 ```
 
 ### Verifiera end-to-end-korrelation i loggar (samma `messageId`)
@@ -174,15 +165,14 @@ docker logs integration-app
 ```bash
 curl -X POST "http://localhost:8080/api/send?message=Test-1"
 ```
-> Tips: Exempel använder **jq** för enklare filtrering, men du kan lika gärna läsa `logs/app.log` direkt med `cat` eller `tail`.
 
-**2) Visa producentens rader (tid, text, messageId)**
+**2) Filtrera enbart producentens loggar (timestamp, message, messageId)**
 
 ```bash
-tail -n 50 logs/app.log | jq -r '
-  select(.logger_name=="com.igorgomes.integration.MessageProducer")
-  | [.["@timestamp"], .message, .messageId] | @tsv
-'
+docker logs integration-app \
+  | jq -R 'fromjson? | select(.)' \
+  | jq -r 'select(.logger_name=="com.igorgomes.integration.MessageProducer")
+           | [.["@timestamp"], .message, .messageId] | @tsv'
 ```
 
 Exempelutdata (1 sep 2025):
@@ -197,13 +187,13 @@ Exempelutdata (1 sep 2025):
 2025-09-01T00:52:09.325314642+02:00     Meddelandet skickades framgångsrikt!    ee36e1c6-bbce-4e7e-b4eb-3efa31a8dfec
 ```
 
-**3) Visa konsumentens rader (tid, text, messageId)**
+**3) Filtrera enbart konsumentens loggar (timestamp, message, messageId)**
 
 ```bash
-tail -n 50 logs/app.log | jq -r '
-  select(.logger_name=="com.igorgomes.integration.MessageConsumer")
-  | [.["@timestamp"], .message, .messageId] | @tsv
-'
+docker logs integration-app \
+  | jq -R 'fromjson? | select(.)' \
+  | jq -r 'select(.logger_name=="com.igorgomes.integration.MessageConsumer")
+           | [.["@timestamp"], .message, .messageId] | @tsv'
 ```
 
 Exempelutdata (1 sep 2025):
@@ -223,7 +213,6 @@ Exempelutdata (1 sep 2025):
 
 ```bash
 docker exec -it postgres psql -U integration -d integrationdb
-# alt: podman exec -it postgres psql -U integration -d integrationdb
 ```
 Kör exempel-fråga:
 
@@ -235,54 +224,3 @@ Avsluta:
 ```sql
 \q
 ```
-
-## Felsökning
-
-- Port **8080** upptagen → stäng processen eller ändra port.
-- ActiveMQ-konsol: `http://localhost:8161` (user: `admin`, pass: `admin`).
-- Databasanslutning: verifiera att containern **postgres** körs och att strängen i `application.properties` pekar på `jdbc:postgresql://postgres:5432/integrationdb`.
-
----
-
-## Artefakter (CI/CD)
-
-Alla artifacts hämtas via **Actions** i GitHub:
-
-1. Gå till **Actions** och öppna körningen för ditt commit.
-2. Under **Artifacts**, klicka på namnet och ladda ner ZIP:en.
-
-> Obs: Alla artifacts lagras i **14 dagar** och ingår inte i Docker-image (ignoreras i `.gitignore`).
-
-### CI-artifacts
-
-- **JaCoCo-rapport** (`main` och `test`)  
-  → Öppna `index.html` i ZIP:en för täckningen.
-
-- **JavaDoc** (endast `main`)  
-  → Öppna `index.html` i `target/site/apidocs/`.
-
-- **Stubs** (endast `main`)  
-  → Använd innehållet som **WireMock-stubs** för konsumenttester.
-
-- **Surefire-rapporter** (**endast vid fel**, **14 dagar**)  
-  → `target/surefire-reports/**` + `*-jvmRun*.dump` + `*.dumpstream` laddas upp automatiskt om bygget misslyckas (för felsökning i Actions).
-
-### CD-artifacts
-
-- **SBOM (CycloneDX)**  
-  → Öppna `sbom.cdx.json` i ZIP:en.
-
-#### Visa säkerhetsfynd (Code scanning)
-
-1. Öppna **Security → Code scanning** i GitHub.
-2. Filtrera på verktyg: **Trivy** och **Gitleaks**.
-    - **Trivy:** **CRITICAL** blockerar i *quality gate*; **HIGH** rapporteras som **SARIF**.
-    - **Gitleaks:** **SARIF** laddas upp vid **push till `main`** och **schemalagd körning**; i **PR** körs snabb skanning som gate (utan SARIF).
-
-> Tips: Du hittar även digesten och multi-arch-info via `docker buildx imagetools inspect <image>:<tag>` om du vill dubbelkolla promotionen.
-
----
-
-> **Obs:** Pipelines och artifacts är fullt fungerande i detta repo och kan granskas direkt via **Actions**-fliken.  
-> Vid automatiska tester i CI används en in-memory **H2**-databas istället för PostgreSQL för snabbare körning och enklare underhåll.  
-> Att reproducera pipeline i en egen miljö kräver uppdatering av konfiguration och credentials i GitHub Actions samt peka om publiceringen till ett eget **Docker Hub**-konto (container registry). Detta är utanför projektets huvudsyfte.
