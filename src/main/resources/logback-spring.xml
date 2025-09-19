@@ -4,6 +4,7 @@
     <!-- Loggar till konsolen i Logstash/JSON-format -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+          
             <!-- Tidszon för tidsstämplar i loggar -->
             <timeZone>UTC</timeZone>
         </encoder>
@@ -13,5 +14,5 @@
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>
     </root>
-
+  
 </configuration>
