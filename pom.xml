@@ -21,6 +21,8 @@
     <properties>
         <java.version>17</java.version>
         <spring-cloud-contract.version>4.3.0</spring-cloud-contract.version>
+        <!-- Hjälper IDE (IntelliJ) att lösa ${argLine}; JaCoCo skriver över värdet vid build -->
+        <argLine> </argLine>
     </properties>
 
     <dependencies>
@@ -170,6 +172,8 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.2.5</version>
                 <configuration>
+                    <!-- Viktigt: behåll JaCoCos argLine (late replacement) och lägg bara till flaggorna -->
+                    <argLine>${argLine} -XX:+EnableDynamicAgentLoading -Xshare:off</argLine>
                     <systemPropertyVariables>
                         <!-- Aktiverar test-profilen under 'mvn test' / CI -->
                         <spring.profiles.active>test</spring.profiles.active>
