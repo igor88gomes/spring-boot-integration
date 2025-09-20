@@ -55,14 +55,19 @@ jobs:
         if: always() && steps.jacoco_check.outputs.has != 'true'
         run: echo "JaCoCo saknas/ogiltig; hoppar över upload."
 
-        # JavaDocs: endast på main
+      # JavaDocs: körs ENDAST på main OCH när commit-/PR-meddelandet innehåller “[javadoc]”.
+      # (Vid squash-merge används PR-titeln som commit-meddelande, så lägg “[javadoc]” i PR-titeln.)
       - name: Generera JavaDocs
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push' &&
+          github.ref == 'refs/heads/main' &&
+          contains(github.event.head_commit.message, '[javadoc]')
         run: mvn -B -DskipTests -DfailOnError=false javadoc:javadoc
 
       - name: Kontrollera JavaDocs
         id: javadoc_check
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push' &&
+          github.ref == 'refs/heads/main' &&
+          contains(github.event.head_commit.message, '[javadoc]')
         run: |
           if [ -d target/site/apidocs ] && [ "$(ls -A target/site/apidocs)" ]; then
             echo "has=true" >> "$GITHUB_OUTPUT"
@@ -71,7 +76,10 @@ jobs:
           fi
 
       - name: Ladda upp JavaDocs (14 dagar)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.javadoc_check.outputs.has == 'true'
+        if: github.event_name == 'push' &&
+          github.ref == 'refs/heads/main' &&
+          contains(github.event.head_commit.message, '[javadoc]') &&
+          steps.javadoc_check.outputs.has == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: javadocs
@@ -79,7 +87,10 @@ jobs:
           retention-days: 14
 
       - name: Hoppa över upload (JavaDocs saknas)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.javadoc_check.outputs.has != 'true'
+        if: github.event_name == 'push' &&
+          github.ref == 'refs/heads/main' &&
+          contains(github.event.head_commit.message, '[javadoc]') &&
+          steps.javadoc_check.outputs.has != 'true'
         run: echo "JavaDocs saknas/ogiltiga; hoppar över upload."
 
       # Spring Cloud Contract: publicera stubs.jar som artifact (endast main)
@@ -112,3 +123,15 @@ jobs:
         if: github.ref == 'refs/heads/main' && steps.stubs_check.outputs.has != 'true'
         run: echo "stubs saknas/ogiltig; hoppar över upload."
 
+      # Ladda upp Surefire-rapporter bara om jobbet misslyckas (felsökning)
+      - name: Ladda upp Surefire-rapporter vid fel
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: |
+            target/surefire-reports/**
+            **/*-jvmRun*.dump
+            **/*.dumpstream
+          if-no-files-found: ignore
+          retention-days: 14
