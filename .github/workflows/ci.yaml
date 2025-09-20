@@ -25,20 +25,18 @@ jobs:
           java-version: 17
           cache: maven
 
-      # Bygg & test (JaCoCo)
       - name: Build & test (JaCoCo)
-        run: mvn -B -ntp clean verify
+        run: mvn -B clean verify
 
-      # Kontroll: JaCoCo-rapport finns och är läsbar (XML)
-      - name: Kontrollera JaCoCo (XML)
+      # Kontroll: JaCoCo-rapport finns och är läsbar (HTML)
+      - name: Kontrollera JaCoCo (HTML)
         id: jacoco_check
         if: always()
-        shell: bash
         run: |
-          FILE="target/site/jacoco/jacoco.xml"
-          if [ -s "$FILE" ]; then
-            echo "has=true"  >> "$GITHUB_OUTPUT"
-            echo "path=$FILE" >> "$GITHUB_OUTPUT"
+          set -euo pipefail
+          FILE="target/site/jacoco/index.html"
+          if [ -s "$FILE" ] && grep -qi "jacoco" "$FILE"; then
+            echo "has=true" >> "$GITHUB_OUTPUT"
           else
             echo "has=false" >> "$GITHUB_OUTPUT"
           fi
@@ -49,8 +47,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: jacoco-report
-          path: ${{ steps.jacoco_check.outputs.path }}   # pekar på XML-filen
+          path: target/site/jacoco/**
           retention-days: 14
+
+      # Logg om upload hoppas över
+      - name: Hoppa över upload (JaCoCo saknas/ogiltig)
+        if: always() && steps.jacoco_check.outputs.has != 'true'
+        run: echo "JaCoCo saknas/ogiltig; hoppar över upload."
 
       # JavaDocs: körs ENDAST på main OCH när commit-/PR-meddelandet innehåller “[javadoc]”.
       # (Vid squash-merge används PR-titeln som commit-meddelande, så lägg “[javadoc]” i PR-titeln.)
