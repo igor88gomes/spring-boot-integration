@@ -26,17 +26,16 @@ jobs:
           cache: maven
 
       - name: Build & test (JaCoCo)
-        run: mvn -B clean verify jacoco:report
+        run: mvn -B clean verify
 
-      # Kontroll: JaCoCo-rapport (HTML eller XML) finns och är giltig
+      # Kontroll: JaCoCo-rapport finns och är läsbar (HTML)
       - name: Kontrollera JaCoCo (HTML)
         id: jacoco_check
         if: always()
         run: |
           set -euo pipefail
-          HTML="target/site/jacoco/index.html"
-          XML="target/site/jacoco/jacoco.xml"
-          if { [ -s "$HTML" ] && grep -qi "jacoco" "$HTML"; } || [ -s "$XML" ]; then
+          FILE="target/site/jacoco/index.html"
+          if [ -s "$FILE" ] && grep -qi "jacoco" "$FILE"; then
             echo "has=true" >> "$GITHUB_OUTPUT"
           else
             echo "has=false" >> "$GITHUB_OUTPUT"
@@ -50,11 +49,6 @@ jobs:
           name: jacoco-report
           path: target/site/jacoco/**
           retention-days: 14
-
-      # Logg om upload hoppas över
-      - name: Hoppa över upload (JaCoCo saknas/ogiltig)
-        if: always() && steps.jacoco_check.outputs.has != 'true'
-        run: echo "JaCoCo saknas/ogiltig; hoppar över upload."
 
       # JavaDocs: körs ENDAST på main OCH när commit-/PR-meddelandet innehåller “[javadoc]”.
       # (Vid squash-merge används PR-titeln som commit-meddelande, så lägg “[javadoc]” i PR-titeln.)
