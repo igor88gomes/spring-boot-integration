@@ -192,8 +192,6 @@
                 </configuration>
             </plugin>
 
-<<<<<<< HEAD
-=======
             <!-- JavaDoc-plugin: generera API-dokumentation; tolerera varningar i Java 17 -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -211,9 +209,7 @@
                 </configuration>
             </plugin>
 
-
             <!-- Jacoco-plugin för kodtäckningsrapporter -->
->>>>>>> 3f9fb11 (build(ci,javadoc): enable controlled JavaDoc generation with [javadoc] flag)
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
