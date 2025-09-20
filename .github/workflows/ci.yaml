@@ -25,18 +25,20 @@ jobs:
           java-version: 17
           cache: maven
 
+      # Bygg & test (JaCoCo)
       - name: Build & test (JaCoCo)
-        run: mvn -B clean verify
+        run: mvn -B -ntp clean verify
 
-      # Kontroll: JaCoCo-rapport finns och är läsbar (HTML)
-      - name: Kontrollera JaCoCo (HTML)
+      # Kontroll: JaCoCo-rapport finns och är läsbar (XML)
+      - name: Kontrollera JaCoCo (XML)
         id: jacoco_check
         if: always()
+        shell: bash
         run: |
-          set -euo pipefail
-          FILE="target/site/jacoco/index.html"
-          if [ -s "$FILE" ] && grep -qi "jacoco" "$FILE"; then
-            echo "has=true" >> "$GITHUB_OUTPUT"
+          FILE="target/site/jacoco/jacoco.xml"
+          if [ -s "$FILE" ]; then
+            echo "has=true"  >> "$GITHUB_OUTPUT"
+            echo "path=$FILE" >> "$GITHUB_OUTPUT"
           else
             echo "has=false" >> "$GITHUB_OUTPUT"
           fi
@@ -47,7 +49,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: jacoco-report
-          path: target/site/jacoco/**
+          path: ${{ steps.jacoco_check.outputs.path }}   # pekar på XML-filen
           retention-days: 14
 
       # JavaDocs: körs ENDAST på main OCH när commit-/PR-meddelandet innehåller “[javadoc]”.
