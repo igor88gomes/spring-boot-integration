@@ -54,6 +54,7 @@ docs/images/*
 !docs/PROJECT_HISTORY.md
 !docs/USAGE.md
 !docs/TESTS.md
+!docs/ARTIFACTS.md
 .env
 !.env.example
 

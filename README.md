@@ -241,13 +241,13 @@ Se [docs/TESTS.md](docs/TESTS.md) för fler detaljer om testerna.
   - **Steg 3 – Kodtäckning (JaCoCo):** generera rapport och ladda upp som artefakt.
   - **Steg 4 – JavaDoc (endast `main` vid commit-/PR-meddelandet innehåller `"[javadoc]"`):** generera och ladda upp som artefakt.
   - **Steg 5 – Stubs (SCC), (endast `main`):** stubs **genereras av Spring Cloud Contract under `mvn verify`** och CI **laddar upp `*-stubs.jar` som artefakt** (om finns).
-  - **Steg 6 – Felsökning (endast vid fel):** **ladda upp Surefire-rapporter** (`target/surefire-reports/**` + dumpfiler) för att förenkla felsökning i Actions.
+  - **Steg 6 – Felsökning (endast vid fel):** ladda upp test­rapporter (**Surefire/Failsafe**) – `target/surefire-reports/**`, `target/failsafe-reports/**` + dumpfiler för att förenkla felsökning i Actions.
 
 - **Artefakter:**
   - `jacoco-report` (main/test, **retention 14 dagar**)
   - `javadocs` (endast `main`, **14 dagar**)
   - `stubs` (endast `main`, **14 dagar**) – genererade av Spring Cloud Contract för konsumenttester
-  - `surefire-reports` (**endast vid fel**, **14 dagar**) – testrapporter och dumpfiler för felsökning
+  - `surefire-reports` (**endast vid fel**, **14 dagar**) – **Surefire/Failsafe**-rapporter och dumpfiler för felsökning
 
 #### Secret scanning (Gitleaks)
 
