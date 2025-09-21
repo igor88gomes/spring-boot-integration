@@ -166,6 +166,7 @@
                 </configuration>
             </plugin>
 
+
             <!-- Kör alla tester med profilen "test" så att H2 (in-memory) används i testkörningar -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
