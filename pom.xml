@@ -194,6 +194,21 @@
             </plugin>
 
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.6.3</version>
+                <configuration>
+                    <failOnError>false</failOnError>
+                    <source>17</source>
+                    <doclint>none</doclint>
+                    <encoding>UTF-8</encoding>
+                    <charset>UTF-8</charset>
+                    <docencoding>UTF-8</docencoding>
+                </configuration>
+            </plugin>
+
+            <!-- Jacoco-plugin för kodtäckningsrapporter -->
+            <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <version>0.8.12</version>
@@ -214,12 +229,8 @@
                         <configuration>
                             <!-- Var rapporterna ska sparas -->
                             <outputDirectory>${project.build.directory}/site/jacoco</outputDirectory>
-
-                            <!-- Vilka format som ska genereras (endast XML om du vill) -->
                             <formats>
-                                <format>XML</format>
-                                <!-- <format>HTML</format> -->
-                                <!-- <format>CSV</format> -->
+                                <format>HTML</format>
                             </formats>
                         </configuration>
                     </execution>

@@ -55,10 +55,12 @@ jobs:
         if: always() && steps.jacoco_check.outputs.has != 'true'
         run: echo "JaCoCo saknas/ogiltig; hoppar över upload."
 
-      # Steg 4 – JavaDoc (endast main vid commit-/PR-meddelandet innehåller "[javadoc]")
+        # JavaDocs: endast på main OCH när commit-/PR-meddelandet innehåller '[javadoc]'
       - name: Generera JavaDocs
-        if: github.ref == 'refs/heads/main' && (contains(github.event.head_commit.message, '[javadoc]') || contains(github.event.pull_request.title, '[javadoc]'))
-        run: mvn -B -DskipTests -DfailOnError=false javadoc:javadoc
+        if: github.event_name == 'push' &&
+          github.ref == 'refs/heads/main' &&
+          contains(github.event.head_commit.message, '[javadoc]')
+        run: mvn -B -DskipTests javadoc:javadoc
 
       - name: Kontrollera JavaDocs
         id: javadoc_check
