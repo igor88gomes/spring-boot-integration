@@ -55,11 +55,6 @@ jobs:
         if: always() && steps.jacoco_check.outputs.has != 'true'
         run: echo "JaCoCo saknas/ogiltig; hoppar över upload."
 
-      # TEMP: tvinga CI-fel för att testa upload av Surefire-rapporter (TA BORT EFTER VERIFIERING)
-      - name: Tvinga CI-fel (TEMP)
-        if: always()
-        run: exit 1
-
         # JavaDocs: endast på main OCH när commit-/PR-meddelandet innehåller '[javadoc]'
       - name: Generera JavaDocs
         if: github.event_name == 'push' &&
