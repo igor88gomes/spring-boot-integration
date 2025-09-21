@@ -205,7 +205,7 @@
                     <docencoding>UTF-8</docencoding>
                 </configuration>
             </plugin>
-            
+
             <!-- Jacoco-plugin för kodtäckningsrapporter -->
             <plugin>
                 <groupId>org.jacoco</groupId>
@@ -228,12 +228,8 @@
                         <configuration>
                             <!-- Var rapporterna ska sparas -->
                             <outputDirectory>${project.build.directory}/site/jacoco</outputDirectory>
-
-                            <!-- Vilka format som ska genereras (endast XML om du vill) -->
                             <formats>
-                                <format>XML</format>
-                                <!-- <format>HTML</format> -->
-                                <!-- <format>CSV</format> -->
+                                <format>HTML</format>
                             </formats>
                         </configuration>
                     </execution>
