@@ -40,6 +40,9 @@ updates:
           - "version-update:semver-minor"
           - "version-update:semver-patch"
 
+      # Javadoc körs on-demand – undvik auto-bump som kan störa Docker go-offline; uppdatera manuellt vid behov
+      - dependency-name: "org.apache.maven.plugins:maven-javadoc-plugin"
+
   # 2) GitHub Actions (CI) – veckovis; grouping (ingen security-only flag här)
   - package-ecosystem: "github-actions"
     directory: "/"
