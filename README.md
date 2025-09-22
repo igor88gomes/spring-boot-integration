@@ -23,7 +23,7 @@
        alt="CI/CD-pipeline – Spring Boot, Docker och GitHub Actions"
        width="900">
 </p>
-<p align="center"><em><strong>Bild 2.</strong> CI/CD-pipeline – bygg, test (JaCoCo/JavaDoc/Stubs), säkerhetsskanning (Gitleaks/Trivy med SARIF), och publicering till Docker Hub samt SBOM-generering.</em></p>
+<p align="center"><em><strong>Bild 2.</strong> Översikt av CI/CD-pipeline. Diagrammet visar huvudflödet: bygg, test, säkerhetsskanning samt image-publicering och distribution.</em></p>
 
 ## Projektinformation
 
