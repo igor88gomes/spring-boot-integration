@@ -56,7 +56,6 @@ jobs:
         run: echo "JaCoCo saknas/ogiltig; hoppar över upload."
 
       # JavaDocs: bara på main när commit-meddelandet innehåller '[javadoc]'
-
       - name: Generera JavaDocs
         if: github.event_name == 'push' &&
           github.ref == 'refs/heads/main' &&
