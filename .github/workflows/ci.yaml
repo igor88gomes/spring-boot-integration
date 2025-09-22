@@ -55,17 +55,11 @@ jobs:
         if: always() && steps.jacoco_check.outputs.has != 'true'
         run: echo "JaCoCo saknas/ogiltig; hoppar över upload."
 
-      # JavaDocs: endast på main OCH när commit-meddelandet innehåller '[javadoc]'
-      - name: Generera JavaDocs (push)
+      # JavaDocs: endast på main OCH när commit-/PR-meddelandet innehåller '[javadoc]'
+      - name: Generera JavaDocs
         if: github.event_name == 'push' &&
           github.ref == 'refs/heads/main' &&
           contains(github.event.head_commit.message, '[javadoc]')
-        run: mvn -B -DskipTests -P javadoc javadoc:javadoc
-
-      # JavaDocs: i PR när titeln innehåller '[javadoc]' (validera profilen i PR)
-      - name: Generera JavaDocs (pull_request)
-        if: github.event_name == 'pull_request' &&
-          contains(github.event.pull_request.title, '[javadoc]')
         run: mvn -B -DskipTests -P javadoc javadoc:javadoc
 
       - name: Kontrollera JavaDocs
