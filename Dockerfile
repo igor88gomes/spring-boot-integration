@@ -5,7 +5,7 @@ WORKDIR /app
 # 1) Förvärm Maven-cache genom en "torr" package (utan tester/javadoc)
 COPY pom.xml .
 RUN --mount=type=cache,target=/root/.m2 \
-    mvn -B -q -DskipTests -Dmaven.javadoc.skip=true package && rm -rf target
+     mvn -B -q -DskipTests dependency:go-offline
 
 # 2) Bygg koden (utan tester här; tester körs i CI)
 COPY src ./src
