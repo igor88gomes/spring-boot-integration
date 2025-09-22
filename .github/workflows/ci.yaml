@@ -60,7 +60,7 @@ jobs:
         if: github.event_name == 'push' &&
           github.ref == 'refs/heads/main' &&
           contains(github.event.head_commit.message, '[javadoc]')
-        run: mvn -B -DskipTests -P javadoc javadoc:javadoc
+        run: mvn -B -DskipTests javadoc:javadoc
 
       - name: Kontrollera JavaDocs
         id: javadoc_check
@@ -127,5 +127,3 @@ jobs:
             **/*.dumpstream
           retention-days: 14
           if-no-files-found: ignore
-
-
