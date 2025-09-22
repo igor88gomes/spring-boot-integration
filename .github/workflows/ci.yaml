@@ -55,7 +55,7 @@ jobs:
         if: always() && steps.jacoco_check.outputs.has != 'true'
         run: echo "JaCoCo saknas/ogiltig; hoppar över upload."
 
-      # JavaDocs: endast på main OCH när commit-/PR-meddelandet innehåller '[javadoc]'
+      # JavaDocs: bara på main när commit-meddelandet innehåller '[javadoc]'
       - name: Generera JavaDocs
         if: github.event_name == 'push' &&
           github.ref == 'refs/heads/main' &&
