@@ -6,7 +6,11 @@ on:
     branches: [ main, test ]    # Kör tester när man pushar till både main och test
   pull_request:
     branches: [ main ]          # Blockerar merge till main om CI inte är grön
-
+  # Kör även checks på PRs som skapas av GitHub Actions (ex. coverage badge)
+  workflow_run:
+    workflows: ["Java CI with Maven", "Secret Scan"]
+    types:
+      - completed
 concurrency:
   group: ci-${{ github.ref }}   # Avbryt äldre körningar på samma gren
   cancel-in-progress: true
