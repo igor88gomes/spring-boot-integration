@@ -6,6 +6,8 @@ on:
     branches: [ main, test ]    # Kör tester när man pushar till både main och test
   pull_request:
     branches: [ main ]          # Blockerar merge till main om CI inte är grön
+  pull_request_target:
+    branches: [ main ]          # Kör även när PR öppnas av bot
 
 concurrency:
   group: ci-${{ github.ref }}   # Avbryt äldre körningar på samma gren
@@ -17,6 +19,9 @@ jobs:
     permissions:
       contents: write  # För att committa SVG-badgen
       pull-requests: write     # För att skapa PR automatiskt
+
+    # Kör på vanliga PR eller när botten öppnar PR (pull_request_target)
+    if: github.event_name == 'pull_request' || (github.event_name == 'pull_request_target' && github.actor == 'github-actions[bot]')
 
     steps:
       - uses: actions/checkout@v4
