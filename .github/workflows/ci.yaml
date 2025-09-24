@@ -55,17 +55,36 @@ jobs:
         if: always() && steps.jacoco_check.outputs.has != 'true'
         run: echo "JaCoCo saknas/ogiltig; hoppar över upload."
 
-      # JavaDocs: endast på main och när commit-meddelandet innehåller "[javadoc]"
+      # ---- Flagga: ska vi generera JavaDoc? (endast push→main med "[javadoc]" i commit) ----
+      - name: Set JavaDoc flag
+        id: jdoc
+        shell: bash
+        run: |
+          # Logga händelsetyp, ref och commit-meddelande (för felsökning)
+          set -euo pipefail
+          echo "event=${{ github.event_name }}"
+          echo "ref=${{ github.ref }}"
+          echo "msg=${{ github.event.head_commit.message }}"
+          # Standard: generera INTE javadoc
+          JDOC=false
+          # Aktivera endast vid push till main OCH när commit-meddelandet innehåller "[javadoc]"
+          if [ "${{ github.event_name }}" = "push" ] \
+             && [ "${{ github.ref }}" = "refs/heads/main" ] \
+             && [[ "${{ github.event.head_commit.message }}" == *"[javadoc]"* ]]; then
+            JDOC=true
+          fi
+          # Exportera flaggan till efterföljande steg
+          echo "enabled=$JDOC" >> "$GITHUB_OUTPUT"
+
+      # JavaDocs: kör endast när flaggan är sann
       - name: Generera JavaDocs
-        if: github.event_name == 'push' &&
-          github.ref == 'refs/heads/main' &&
-          contains(github.event.head_commit.message, '[javadoc]')
+        if: steps.jdoc.outputs.enabled == 'true'
         run: mvn -B -DskipTests javadoc:javadoc
 
-      # JavaDocs (kontroll/upload): tillåt även PR-titel med "[javadoc]" (stöd för squash-merge)
+      # Kontroll: verifiera att apidocs faktiskt genererades
       - name: Kontrollera JavaDocs
         id: javadoc_check
-        if: github.ref == 'refs/heads/main' && (contains(github.event.head_commit.message, '[javadoc]') || contains(github.event.pull_request.title, '[javadoc]'))
+        if: steps.jdoc.outputs.enabled == 'true'
         run: |
           if [ -d target/site/apidocs ] && [ "$(ls -A target/site/apidocs)" ]; then
             echo "has=true" >> "$GITHUB_OUTPUT"
@@ -73,16 +92,18 @@ jobs:
             echo "has=false" >> "$GITHUB_OUTPUT"
           fi
 
+      # Ladda upp JavaDocs som artifact (endast om kontrollen lyckades)
       - name: Ladda upp JavaDocs (14 dagar)
-        if: github.ref == 'refs/heads/main' && (contains(github.event.head_commit.message, '[javadoc]') || contains(github.event.pull_request.title, '[javadoc]')) && steps.javadoc_check.outputs.has == 'true'
+        if: steps.jdoc.outputs.enabled == 'true' && steps.javadoc_check.outputs.has == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: javadocs
           path: target/site/apidocs/**
           retention-days: 14
 
+      # Hoppa över upload om JavaDocs inte genererades (endast när flaggan är sann)
       - name: Hoppa över upload (JavaDocs saknas)
-        if: github.ref == 'refs/heads/main' && (contains(github.event.head_commit.message, '[javadoc]') || contains(github.event.pull_request.title, '[javadoc]')) && steps.javadoc_check.outputs.has != 'true'
+        if: steps.jdoc.outputs.enabled == 'true' && steps.javadoc_check.outputs.has != 'true'
         run: echo "JavaDocs saknas/ogiltiga; hoppar över upload."
 
       # Spring Cloud Contract: publicera stubs.jar som artifact (endast main)
