@@ -6,8 +6,6 @@ on:
     branches: [ main, test ]    # Kör tester när man pushar till både main och test
   pull_request:
     branches: [ main ]          # Blockerar merge till main om CI inte är grön
-  pull_request_target:
-    branches: [ main ]          # Kör även när PR öppnas av bot
 
 concurrency:
   group: ci-${{ github.ref }}   # Avbryt äldre körningar på samma gren
