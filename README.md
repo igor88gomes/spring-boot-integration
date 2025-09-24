@@ -56,6 +56,7 @@ Målet är inte att täcka alla integrationsscenarier, utan att ge en praktisk i
 - [Distribution (CD) – Docker-image (GitHub Actions)](#distribution-cd--docker-image-github-actions)
 - [docs/ARTIFACTS.md#ci-artifacts](docs/ARTIFACTS.md#ci-artifacts)
 - [docs/ARTIFACTS.md#cd-artifacts](docs/ARTIFACTS.md#cd-artifacts)
+
 ---
 
 ## Arkitektur & korrelation (översikt)
