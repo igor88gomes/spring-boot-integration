@@ -29,9 +29,9 @@ jobs:
       - name: Build & test (JaCoCo)
         run: mvn -B clean verify
 
-      # Kodtäckningsbadge (generera SVG från jacoco.xml)
+      # === Kodtäckningsbadge (generera SVG från jacoco.xml) ===
       - name: Generate JaCoCo badge
-        uses: cicirello/jacoco-badge-generator@v4
+        uses: cicirello/jacoco-badge-generator@v2   # <— aqui trocamos v4 -> v2
         with:
           jacoco-xml-file: target/site/jacoco/jacoco.xml
           badges-directory: .github/badges
@@ -44,6 +44,7 @@ jobs:
         with:
           add: ".github/badges/*.svg"
           message: "chore(ci): update coverage badge"
+          default_author: github_actions   # opcional, deixa o autor padronizado
 
       # Kontroll: JaCoCo-rapport finns och är läsbar (HTML)
       - name: Kontrollera JaCoCo (HTML)
