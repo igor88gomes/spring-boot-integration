@@ -17,6 +17,7 @@ jobs:
     permissions:
       contents: write  # För att committa SVG-badgen
       pull-requests: write     # För att skapa PR automatiskt
+
     steps:
       - uses: actions/checkout@v4
 
