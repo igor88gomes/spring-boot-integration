@@ -229,6 +229,7 @@
                             <outputDirectory>${project.build.directory}/site/jacoco</outputDirectory>
                             <formats>
                                 <format>HTML</format>
+                                <format>XML</format>
                             </formats>
                         </configuration>
                     </execution>
