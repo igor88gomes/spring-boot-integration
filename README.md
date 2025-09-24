@@ -1,13 +1,14 @@
 # Spring Boot Integration Demo – ICC & CI/CD
 
 [![CI – main](https://github.com/igor88gomes/spring-boot-integration/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/igor88gomes/spring-boot-integration/actions/workflows/ci.yaml)
-[![CD – main](https://github.com/igor88gomes/spring-boot-integration/actions/workflows/docker-publish.yaml/badge.svg?branch=main)](https://github.com/igor88gomes/spring-boot-integration/actions/workflows/docker-publish.yaml)
-[![Secret Scan](https://github.com/igor88gomes/spring-boot-integration/actions/workflows/secret-scan.yaml/badge.svg?branch=main)](https://github.com/igor88gomes/spring-boot-integration/actions/workflows/secret-scan.yaml)
+[![Test Coverage](https://raw.githubusercontent.com/igor88gomes/spring-boot-integration/main/.github/badges/jacoco.svg)](docs/ARTIFACTS.md#ci-artifacts)
 [![Code scanning](https://img.shields.io/badge/Code%20scanning-enabled-blue)](https://github.com/igor88gomes/spring-boot-integration/security/code-scanning)
+[![Secret Scan](https://github.com/igor88gomes/spring-boot-integration/actions/workflows/secret-scan.yaml/badge.svg?branch=main)](https://github.com/igor88gomes/spring-boot-integration/actions/workflows/secret-scan.yaml)
+[![CD – main](https://github.com/igor88gomes/spring-boot-integration/actions/workflows/docker-publish.yaml/badge.svg?branch=main)](https://github.com/igor88gomes/spring-boot-integration/actions/workflows/docker-publish.yaml)
 [![SBOM](https://img.shields.io/badge/SBOM-CycloneDX-blue)](docs/USAGE.md#cd-artifacts)
 [![Multi-arch](https://img.shields.io/badge/multi--arch-amd64%20%7C%20arm64-blue)](docs/USAGE.md#verifiera-multi-arch-amd64--arm64)
-[![Dependabot](https://img.shields.io/badge/Dependabot-enabled-blue)](https://github.com/igor88gomes/spring-boot-integration/pulls?q=is%3Apr+author%3Aapp%2Fdependabot)
 [![Docker Hub](https://img.shields.io/badge/Docker%20Hub-image-blue)](https://hub.docker.com/r/igor88gomes/spring-boot-integration/tags)
+[![Dependabot](https://img.shields.io/badge/Dependabot-enabled-blue)](https://github.com/igor88gomes/spring-boot-integration/pulls?q=is%3Apr+author%3Aapp%2Fdependabot)
 
 > Av Igor Gomes — DevOps Engineer
 
