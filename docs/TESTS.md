@@ -68,6 +68,7 @@ Testerna täcker **Controller**, **Producer**, **Consumer**, **Repository** och 
 
 - **Lokal/CI:** `mvn verify` kör alla JUnit, Cucumber och **SCC**-tester.
 - **Artefakter (CI):** JaCoCo-rapport, JavaDoc (**endast main + commit `[javadoc]`**) och **stubs.jar** från SCC.
+- **Coverage-badge:** CI uppdaterar badge **coverage** (JaCoCo) på `test`; den följer med i PR → `main`. 
 
 **Artefakter (CI/CD):** se [docs/USAGE.md#artefakter-cicd](docs/USAGE.md#artefakter-cicd).
 
