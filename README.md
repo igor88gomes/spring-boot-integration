@@ -241,7 +241,7 @@ Se [docs/TESTS.md](docs/TESTS.md) för fler detaljer om testerna.
   - **Steg 1 – Checkout & JDK 17:** checka ut källkod och konfigurera Java.
   - **Steg 2 – Bygg & tester (Maven/H2):** kör `mvn verify` med H2 för isolerade tester.
   - **Steg 3 – Kodtäckning (JaCoCo + badge):** generera rapport, ladda upp som artefakt och uppdatera coverage-badge.
-  - **Steg 4 – JavaDoc (endast på `main` när commit-meddelandet innehåller `"[javadoc]"`):** generera och ladda upp som artefakt.
+  - **Steg 4 – JavaDoc (endast på `main`):** generera och ladda upp som artefakt.
   - **Steg 5 – Stubs (SCC), (endast `main`):** stubs **genereras av Spring Cloud Contract under `mvn verify`** och CI **laddar upp `*-stubs.jar` som artefakt** (om finns).
   - **Steg 6 – Felsökning (endast vid fel):** ladda upp testrapporter (**Surefire/Failsafe**) – `target/surefire-reports/**`, `target/failsafe-reports/**` + dumpfiler för att förenkla felsökning i Actions.
 
