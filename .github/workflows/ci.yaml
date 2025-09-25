@@ -20,6 +20,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Checkout av källkod (med historik)
+      # Viktigt: fetch-depth: 0 krävs för att läsa commit-intervallet (before..sha).
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Sätt flagga för JavaDoc
+      # Endast på push → main och om NÅGON commit i pushen innehåller "[javadoc]".
+      - name: Set JavaDoc flag
+        id: jdoc
+        shell: bash
+        run: |
+          set -euo pipefail
+          JDOC=false
+          if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            if git log --pretty=%B "${{ github.event.before }}..${{ github.sha }}" | grep -Fq "[javadoc]"; then
+              JDOC=true
+            fi
+          fi
+          echo "enabled=$JDOC" >> "$GITHUB_OUTPUT"
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -74,21 +95,6 @@ jobs:
         if: always() && steps.jacoco_check.outputs.has != 'true'
         run: echo "JaCoCo saknas/ogiltig; hoppar över upload."
 
-      # Avgör om JavaDoc ska köras baserat på commit-meddelandet på push till main
-      - name: Set JavaDoc flag
-        id: jdoc
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo "msg=${{ github.event.head_commit.message }}"
-          JDOC=false
-          if [ "${{ github.event_name }}" = "push" ] \
-             && [ "${{ github.ref }}" = "refs/heads/main" ] \
-             && [[ "${{ github.event.head_commit.message }}" == *"[javadoc]"* ]]; then
-            JDOC=true
-          fi
-          echo "enabled=$JDOC" >> "$GITHUB_OUTPUT"
-
       # Genererar JavaDoc med Maven (skippar tester)
       - name: Generera JavaDocs
         if: steps.jdoc.outputs.enabled == 'true'
@@ -105,7 +111,7 @@ jobs:
             echo "has=false" >> "$GITHUB_OUTPUT"
           fi
 
-      # Laddar upp JavaDoc som artefakt om den finns
+      # Ladda upp JavaDoc som artefakt om den finns
       - name: Ladda upp JavaDocs (14 dagar)
         if: steps.jdoc.outputs.enabled == 'true' && steps.javadoc_check.outputs.has == 'true'
         uses: actions/upload-artifact@v4
@@ -114,11 +120,10 @@ jobs:
           path: target/site/apidocs/**
           retention-days: 14
 
-      # Loggar att uppladdning hoppas över om JavaDoc saknas/är ogiltig
+      # Logg vid hopp (endast när flaggan var sann)
       - name: Hoppa över upload (JavaDocs saknas)
         if: steps.jdoc.outputs.enabled == 'true' && steps.javadoc_check.outputs.has != 'true'
         run: echo "JavaDocs saknas/ogiltiga; hoppar över upload."
-
 
       # Spring Cloud Contract: publicera stubs.jar som artifact (endast main)
       # Kontroll: finns och är icke-tom?
