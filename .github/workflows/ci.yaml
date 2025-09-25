@@ -38,13 +38,13 @@ jobs:
           badges-directory: .github/badges
           generate-branches-badge: false
 
-      # Commit av badge endast på main (undviker commit i PR)
-      - name: Commit coverage badge
-        if: github.ref == 'refs/heads/main'
+      # Commit av badge på test (så följer den med i PR → main)
+      - name: Commit coverage badge (på test)
+        if: github.ref == 'refs/heads/test'
         uses: EndBug/add-and-commit@v9
         with:
           add: ".github/badges/*.svg"
-          message: "chore(ci): update coverage badge"
+          message: "chore(ci): update coverage badge (test)"
           default_author: github_actions
 
       # Kontroll: JaCoCo-rapport finns och är läsbar (HTML)
