@@ -12,7 +12,7 @@ Alla artifacts hämtas via **Actions** i GitHub:
 - **JaCoCo-rapport** (`main` och `test`)  
   → Öppna `index.html` i ZIP:en för täckningen.
 
-- **JavaDoc** (endast på `main` när commit-meddelandet innehåller `"[javadoc]"`)  
+- **JavaDoc** (endast på `main`)  
   → Öppna `index.html` i `target/site/apidocs/`.
 
 - **Stubs** (endast `main`)  
