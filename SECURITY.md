@@ -1,7 +1,11 @@
 # Security Policy
 
-This is a demo/portfolio repository. It is not intended for production use, but
-we still welcome responsible disclosure of security issues.
+This repository is a **demo/portfolio project**.  
+It demonstrates integration of basic **DevSecOps practices** such as dependency scanning,
+image vulnerability scanning, and secret scanning.
+
+⚠️ **Note:** Findings from these scanners are shown **for demonstration purposes only**  
+and are **not actively reviewed or fixed**.
 
 ## Supported Versions
 
@@ -14,22 +18,13 @@ Only the latest `main` branch is maintained on a best-effort basis.
 
 ## Reporting a Vulnerability
 
-Please **do not open public issues** for security reports.
+Please **do not open public issues** for security concerns.
 
-- Use **GitHub Security Advisories** (preferred): “Security → Report a vulnerability”
+If you want to practice responsible disclosure, you may use:
+
+- **GitHub Security Advisories** (preferred):  
+  Use the “Report a vulnerability” button under the **Security** tab.  
+  This sends a private report directly to the maintainer (me).
 - Or email: igor88gomes@gmail.com
 
-We’ll acknowledge best-effort within **7 days** and keep you updated as we
-triage and address the report.
-
-## Disclosure
-
-We follow coordinated disclosure. We may request time to validate and prepare a
-fix before any public disclosure. Credit is given on request.
-
-## Out of Scope (for this demo)
-
-- Denial-of-service and volumetric attacks
-- Findings that require privileged/local access
-- CVEs only present in example/dev dependencies without a practical exploit path
-- Issues in third-party services outside this repository
+All reports are handled on a **best-effort basis**, since this is a demo project.

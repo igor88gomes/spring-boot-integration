@@ -12,6 +12,8 @@
 
 > Av Igor Gomes — DevOps Engineer
 
+> **Obs (säkerhet):** Detta projekt använder automatiska skannrar (**Dependabot**, **Trivy**, **Gitleaks**) som kan rapportera findings. Kritiska/Höga findings hanteras *best-effort*. Se [SECURITY.md](SECURITY.md).
+
 <p align="center">
   <img src="docs/images/architecture-diagram.png"
        alt="Arkitekturöversikt – Spring Boot, ActiveMQ och PostgreSQL"
@@ -290,6 +292,8 @@ Se [docs/TESTS.md](docs/TESTS.md) för fler detaljer om testerna.
 
 ## Säkerhet & Underhåll
 
+> **Policy:** Se [SECURITY.md](SECURITY.md) för hur findings hanteras (ansvarsfull rapportering, scope och SLA).
+
 ### Beroendehantering (Dependabot)
 
 - **Schema (UTC) & flöde**
@@ -334,6 +338,7 @@ spring-boot-integration/
 - **Användning:** [docs/USAGE.md](docs/USAGE.md)  
 - **Tester:** [docs/TESTS.md](docs/TESTS.md)
 - **Artefakter** [docs/ARTIFACTS.md](docs/ARTIFACTS.md)
+- **Säkerhetspolicy:** [SECURITY.md](SECURITY.md)
 
 ## Kontakt
 

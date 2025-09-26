@@ -38,3 +38,5 @@ Alla artifacts hämtas via **Actions** i GitHub:
 ---
 
 > För reproduktion av pipeline i egen miljö krävs egna credentials och registry-konfiguration.
+
+>**Policy:** Se [SECURITY.md](../SECURITY.md) för hur säkerhetsfynd hanteras (ansvarsfull rapportering, scope).
