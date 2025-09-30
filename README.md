@@ -32,8 +32,7 @@ En **Spring Boot-integration** (REST → **JMS** → **DB**), byggd för **obser
 
 ## Projektinformation
 
-En **meddelandebaserad integrationsapplikation** (REST → ActiveMQ/JMS → PostgreSQL) som demonstrerar mönster inspirerade av ICC (Integration Competency Center).  
-Fokus ligger på **asynkron kommunikation**, **spårbarhet**, **observabilitet** och en komplett **CI/CD-pipeline** med säkerhets- och kvalitetskontroller.
+En **meddelandebaserad integrationsapplikation** (REST → ActiveMQ/JMS → PostgreSQL) som demonstrerar mönster inspirerade av ICC (Integration Competency Center).
 
 ### Teknikstack (översikt)
 **Applikation:** Spring Boot 3, ActiveMQ (JMS), JPA, H2 (CI), PostgreSQL (container)  
@@ -290,6 +289,7 @@ spring-boot-integration/
 ├── pom.xml                 # Maven-konfiguration (beroenden/plugins)
 ├── Dockerfile              # Bygger applikationsimagen
 ├── docker-compose.yaml     # Lokal orkestrering (app, ActiveMQ, PostgreSQL)
+├── SECURITY.md             # Säkerhetspolicy & hantering av findings
 └── README.md               # Projektöversikt
 ```
 
