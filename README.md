@@ -1,6 +1,6 @@
 # Spring Boot Integration Demo – ICC & CI/CD
 
-En **Spring Boot-integration** (REST → **JMS** → **DB**), byggd för **observabilitet** och **testbarhet**, körs **containeriserad** med Docker/Compose och levereras via en **säker CI/CD-pipeline**.
+**Täcker:** integration | säkerhet | observabilitet | testbarhet | containerisering | CI/CD
 
 [![CI – main](https://github.com/igor88gomes/spring-boot-integration/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/igor88gomes/spring-boot-integration/actions/workflows/ci.yaml)
 [![Test Coverage](https://github.com/igor88gomes/spring-boot-integration/raw/main/.github/badges/jacoco.svg)](docs/ARTIFACTS.md#ci-artifacts)
@@ -30,13 +30,13 @@ En **Spring Boot-integration** (REST → **JMS** → **DB**), byggd för **obser
 </p>
 <p align="center"><em><strong>Bild 2.</strong> Översikt av CI/CD-pipeline. Diagrammet visar huvudflödet: bygg, test, säkerhetsskanning samt image-publicering och distribution.</em></p>
 
-## Projektinformation
+## Applikationsöversikt
 
 En **meddelandebaserad integrationsapplikation** (REST → ActiveMQ/JMS → PostgreSQL) som demonstrerar mönster inspirerade av ICC (Integration Competency Center).
 
 ### Teknikstack (översikt)
 **Applikation:** Spring Boot 3, ActiveMQ (JMS), JPA, H2 (CI), PostgreSQL (container)  
-**DevOps/Plattform:** Docker/Compose, GitHub Actions, Trivy, Gitleaks, Dependabot, GHCR/Docker Hub, SBOM
+**Plattform & verktyg:** Docker/Compose, GitHub Actions, Trivy, Gitleaks, Dependabot, GHCR/Docker Hub, SBOM
 
 > **Build-image för applikationen:** CI/CD-byggd image återanvänds i lokal Compose-miljö (samma digest).
 
