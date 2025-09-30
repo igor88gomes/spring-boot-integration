@@ -1,5 +1,7 @@
 # Spring Boot Integration Demo – ICC & CI/CD
 
+En **Spring Boot-integration** (REST → **JMS** → **DB**), byggd för **observabilitet** och **testbarhet**, körs **containeriserad** med Docker/Compose och levereras via en **säker CI/CD-pipeline**.
+
 [![CI – main](https://github.com/igor88gomes/spring-boot-integration/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/igor88gomes/spring-boot-integration/actions/workflows/ci.yaml)
 [![Test Coverage](https://github.com/igor88gomes/spring-boot-integration/raw/main/.github/badges/jacoco.svg)](docs/ARTIFACTS.md#ci-artifacts)
 [![Code scanning](https://img.shields.io/badge/Code%20scanning-enabled-blue)](https://github.com/igor88gomes/spring-boot-integration/security/code-scanning)
@@ -30,23 +32,29 @@
 
 ## Projektinformation
 
-Detta projekt är en **demonstration** av integrationsmönster inspirerade av ICC (Integration Competency Center).  
-Fokus ligger på att visa **asynkron kommunikation**, **spårbarhet** och **observabilitet**, samt en komplett **CI/CD-pipeline** med säkerhets och kvalitetskontroller.
+En **meddelandebaserad integrationsapplikation** (REST → ActiveMQ/JMS → PostgreSQL) som demonstrerar mönster inspirerade av ICC (Integration Competency Center).  
+Fokus ligger på **asynkron kommunikation**, **spårbarhet**, **observabilitet** och en komplett **CI/CD-pipeline** med säkerhets- och kvalitetskontroller.
+
+### Teknikstack (översikt)
+**Applikation:** Spring Boot 3, ActiveMQ (JMS), JPA, H2 (CI), PostgreSQL (container)  
+**DevOps/Plattform:** Docker/Compose, GitHub Actions, Trivy, Gitleaks, Dependabot, GHCR/Docker Hub, SBOM
+
+> **Build-image för applikationen:** CI/CD-byggd image återanvänds i lokal Compose-miljö (samma digest).
+
+### Funktionalitet (kort)
+- Exponerar **REST-API** (Spring Boot)
+- Asynkron meddelandeöverföring via **ActiveMQ (JMS)**
+- Persistent lagring i **PostgreSQL (JPA)**
+- **Korrelation & observabilitet:** JSON-loggar, korrelations-ID, `/actuator/health`
+- Körs **containeriserat** (Docker/Compose)
+- **Automatiska tester** i CI (H2-databas, inbäddad ActiveMQ)
+
+I **CI/testprofil** körs tester **isolerat mot H2 (in-memory)** för snabba feedback-loopar och stabila, pålitliga resultat i pipeline; **PostgreSQL** används i **containermiljö (Docker Compose)** tillsammans med ActiveMQ och applikationsimagen.
+> **Obs (JMS i CI):** CI kör mot **inbäddad ActiveMQ** (`vm://embedded`) för att undvika externa beroenden; containern **activemq** används endast lokalt med Compose.
 
 Målet är inte att täcka alla integrationsscenarier, utan att ge en praktisk inblick i hur olika tekniker kan kombineras i ett modernt DevOps-flöde.
 
-**Höjdpunkter**
-- Händelsedriven väg: REST API → JMS/ActiveMQ → konsument → JPA/PostgreSQL.
-- Spårbarhet: JSON-loggar med korrelations-ID (MDC/JMSCorrelationID) end-to-end.
-- Testbarhet: enhet/web-slice, JPA/H2, BDD (Cucumber) och kontrakt (SCC).
-- Leverans: GitHub Actions kör tester i CI (H2) och **pushar först en kandidat-image till GHCR (privat)**; efter **Trivy-kvalitetsgrind** (**CRITICAL blockerar**) **promoteras med samma digest** till Docker Hub (`:latest`).
-- **Säkerhet & supply chain:** Trivy-gate (CRITICAL stop), **SBOM/OCI-etiketter**, **Gitleaks (PR-gate)** och **Dependabot**.
-
-**Teknikstack (kort):** Java/Spring Boot 3, ActiveMQ (JMS), PostgreSQL, Docker/Compose.  
-*Test/CI-miljö:* H2 (in-memory, profil `test`). Inbäddad ActiveMQ (`vm://embedded`) startas för BDD/E2E; SCC kör mot MVC-slice (utan broker).
-
 ### Principer (kort)
-
 - **12-factor (Config):** miljövariabler; `.env.example`; **inga hemligheter i koden**.
 - **Observerbarhet:** **JSON-loggar**, **MDC/korrelations-ID**, **/actuator/health**, tidsstämplar i **UTC**.
 - **Backing services:** ActiveMQ (JMS) och PostgreSQL konfigureras via env (`BROKER_URL`, `DB_*`).
@@ -54,7 +62,6 @@ Målet är inte att täcka alla integrationsscenarier, utan att ge en praktisk i
 > **CI/CD:** För detaljer, se avsnitten nedan. Se även **Bild 2** för pipelineflödet.
 
 **Snabblänkar (CI/CD):**
-
 - [Bygg / CI & dokumentation (GitHub Actions)](#bygg--ci--dokumentation-github-actions)
 - [Distribution (CD) – Docker-image (GitHub Actions)](#distribution-cd--docker-image-github-actions)
 - [docs/ARTIFACTS.md#ci-artifacts](docs/ARTIFACTS.md#ci-artifacts)
@@ -169,53 +176,6 @@ Se [docs/USAGE.md](docs/USAGE.md) för fler detaljer och körningskommandon.
 
 Se [docs/TESTS.md](docs/TESTS.md) för fler detaljer om testerna.  
 **Artefakter (CI/CD):** se [docs/ARTIFACTS.md](docs/ARTIFACTS.md).
-
-## Funktionalitet
-
-### Applikation
-- Exponerar **REST-API** (Spring Boot)
-- Hanterar **asynkron meddelandeöverföring** via ActiveMQ (JMS)
-- Lagrar **persistent data** i PostgreSQL (JPA)
-- **Korrelation & observabilitet:** JSON-loggar (Logback + MDC), korrelations-ID, **/actuator/health**
-- **Enhetstester** med JUnit 5 och Mockito
-- Körs **containeriserat** 
-- **Automatiska tester** i CI-miljö med **H2-databas**
-
-### Plattform / DevOps
-- **Gated CD** (GHCR → **Trivy**; CRITICAL blockerar) med **promotion per digest** till Docker Hub `:latest`
-- **Multi-arch builds** (`linux/amd64`, `linux/arm64`)
-- **Supply-chain metadata:** **SBOM (CycloneDX)** + **OCI-etiketter**
-- **Kontraktstester** **(Spring Cloud Contract)** med automatisk generering av stubs (artefakt i CI)
-- **Code scanning** i GitHub (SARIF)
-- **Concurrency-skydd** och **retention** av **candidate images** (14 dagar)
-
-## Teknologier
-
-### Applikation
-| Teknologi             | Användning                                |
-|-----------------------|-------------------------------------------|
-| Spring Boot 3.3.x     | Huvudramverk                              |
-| ActiveMQ              | Meddelandekö (JMS)                        |
-| PostgreSQL            | Databashanterare via JPA (containermiljö) |
-| H2-databas            | In-memory databas för tester i CI         |
-| Spring Data JPA       | Hantering av entiteter och datalagring    |
-| Logback + MDC         | Strukturerad loggning i JSON-format       |
-| JUnit + Mockito       | Enhetstester                              |
-| Spring Cloud Contract | Kontraktstester                           |
-
-### Plattform / DevOps
-| Teknologi / Tjänst      | Användning                                             |
-|-------------------------|--------------------------------------------------------|
-| GitHub Actions          | CI/CD-automation                                       |
-| Docker Engine           | Container-runtime (lokalt och i build-pipeline)        |
-| Docker Compose          | Orkestrering lokalt (app, ActiveMQ, PostgreSQL)        |
-| Docker Buildx / QEMU    | **Multi-arch builds** (amd64/arm64)                    |
-| Trivy                   | **Sårbarhetsskanning** + **SARIF** (Code scanning)     |
-| SBOM (CycloneDX)        | Supply-chain spårbarhet i build-steget                 |
-| OCI-etiketter           | `revision`, `created`, `source` (härkomst/metadata)    |
-| GHCR / Docker Hub       | Candidate image → **promotion per digest** (`:latest`) |
-| Concurrency / Retention | Stoppar parallella körningar; **14 dagar** i GHCR      |
-| Kontraktsartefakter (CI)| Stub-generering och lagring i Actions                  |
 
 ## Körning (Runtime)
 
