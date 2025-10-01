@@ -151,7 +151,7 @@ jobs:
         with:
           sarif_file: trivy.sarif
 
-      # --- CD-artifacts (SBOM) för Actions ---
+      # CD-artifacts (SBOM) för Actions
       # Skapa SBOM-katalog (för artifact)
       - name: Skapa SBOM-katalog
         if: always()
@@ -191,12 +191,44 @@ jobs:
         if: always() && steps.sbom_check.outputs.has != 'true'
         run: echo "SBOM saknas/ogiltig; hoppar över upload."
 
-      # Främja EXAKT samma artefakt (digest) till :latest i Docker Hub
-      - name: Främja kandidat till :latest (Docker Hub)
+      # Preflight – inspektera exakt kandidat i GHCR (säkerställer att digest/manifest finns)
+      - name: Preflight – inspect kandidat i GHCR
+        run: docker buildx imagetools inspect "ghcr.io/${{ steps.ghcr_owner.outputs.owner_lc }}/spring-boot-integration@${{ steps.build.outputs.digest }}"
+
+      # Främja EXAKT samma artefakt (digest) till :latest i Docker Hub – med retry och felklassificering
+      - name: Främja kandidat till :latest (Docker Hub) – retry med klassificering
+        shell: bash
         run: |
-          docker buildx imagetools create \
-            --tag ${{ env.IMAGE_NAME }}:latest \
-            ghcr.io/${{ steps.ghcr_owner.outputs.owner_lc }}/spring-boot-integration@${{ steps.build.outputs.digest }}
+          set -e
+          DEST="${{ env.IMAGE_NAME }}:latest"
+          SRC="ghcr.io/${{ steps.ghcr_owner.outputs.owner_lc }}/spring-boot-integration@${{ steps.build.outputs.digest }}"
+
+          retriable() { echo "$1" | grep -Eiq '(502|503|504|timeout|timed out|connection reset|EOF)'; }
+
+          for i in 1 2 3 4 5; do
+            set +e
+            OUT=$(docker buildx imagetools create --tag "$DEST" "$SRC" 2>&1)
+            CODE=$?
+            set -e
+            echo "$OUT"
+
+            if [ $CODE -eq 0 ]; then
+              echo "Promotion successful."
+              exit 0
+            fi
+
+            if retriable "$OUT"; then
+              S=$(( 2**(i-1) ))   # 1, 2, 4, 8, 16s
+              echo "Transient fel, försöker igen om ${S}s (försök $i/5)..."
+              sleep "$S"
+            else
+              echo "Icke-återställbart fel (auth/permissions/ogiltig referens). Avbryter snabbt."
+              exit $CODE
+            fi
+          done
+
+          echo "Promotion failed after retries."
+          exit 1
 
   # Separat jobb: rensa Docker Desktop build record-artefakt (för att undvika förvirring)
   cleanup:
