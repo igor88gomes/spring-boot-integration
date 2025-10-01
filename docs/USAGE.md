@@ -1,5 +1,13 @@
 # Användarguide
 
+## Tips
+
+### Tester lokalt
+
+- Man kan köra alla tester **lokalt (utan Docker)** direkt med Maven. Dessa använder H2 och inbäddad ActiveMQ för snabb feedback.
+
+För detaljer, se [TESTS.md](TESTS.md#kör-tester-lokalt).
+
 ## Förutsättningar
 
 Innan du börjar, se till att följande är installerat på systemet:
@@ -12,8 +20,7 @@ Instruktionerna nedan använder **Docker** som standard.
 Om du använder **Podman**, ersätt helt enkelt `docker` med `podman` och  
 `docker compose` med `podman-compose`.
 
-> **Obs!** Vill du köra tester lokalt utan Docker?
-> Se [docs/TESTS.md](docs/TESTS.md#kör-tester-lokalt).
+> **Obs:** Exemplen är anpassade för Linux/Unix. I andra miljöer kan vissa kommandon behöva justeras.
 
 ---
 
@@ -150,7 +157,7 @@ I container-miljö läses loggar via `docker logs`.
 
 **Som JSON (med jq):**
 ```bash
-docker logs integration-app | jq
+docker logs integration-app 2>&1 | jq -R 'fromjson? | select(. != null)'
 
 ```
 **Råa loggar (utan jq):**
@@ -169,42 +176,42 @@ curl -X POST "http://localhost:8080/api/send?message=Test-1"
 **2) Filtrera enbart producentens loggar (timestamp, message, messageId)**
 
 ```bash
-docker logs integration-app \
-  | jq -R 'fromjson? | select(.)' \
-  | jq -r 'select(.logger_name=="com.igorgomes.integration.MessageProducer")
-           | [.["@timestamp"], .message, .messageId] | @tsv'
+docker logs integration-app 2>&1 \
+| grep -E '^\{' \
+| jq -r 'select(.logger_name=="com.igorgomes.integration.MessageProducer")
+         | [.["@timestamp"], .message, .messageId] | @tsv'
 ```
 
-Exempelutdata (1 sep 2025):
+Exempelutdata (30 sep 2025):
 
 ```text
-2025-09-01T00:49:26.818886199+02:00     Aktiv kö (konfiguration): test-queue
-2025-09-01T00:51:54.187148005+02:00     Skickar meddelande till kön: Test-1     50de7a3b-b8e0-4fe6-8497-3663012fe7e5
-2025-09-01T00:51:54.412839282+02:00     Meddelandet skickades framgångsrikt!    50de7a3b-b8e0-4fe6-8497-3663012fe7e5
-2025-09-01T00:52:02.644401358+02:00     Skickar meddelande till kön: Test-2     244fb974-76a0-422e-9dde-248e1ea536cb
-2025-09-01T00:52:02.669139559+02:00     Meddelandet skickades framgångsrikt!    244fb974-76a0-422e-9dde-248e1ea536cb
-2025-09-01T00:52:09.308283094+02:00     Skickar meddelande till kön: Test-3     ee36e1c6-bbce-4e7e-b4eb-3efa31a8dfec
-2025-09-01T00:52:09.325314642+02:00     Meddelandet skickades framgångsrikt!    ee36e1c6-bbce-4e7e-b4eb-3efa31a8dfec
+2025-09-30T18:47:34.806701896Z  Aktiv kö (konfiguration): test-queue
+2025-09-30T18:47:51.358145779Z  Skickar meddelande till kön: Test-1     486846ae-803d-40d7-b469-d912ceb1667a
+2025-09-30T18:47:51.539331336Z  Meddelandet skickades framgångsrikt!    486846ae-803d-40d7-b469-d912ceb1667a
+2025-09-30T20:49:37.49683169Z   Skickar meddelande till kön: Test-2     0a2af829-05c2-4989-82ab-142e9052668a
+2025-09-30T20:49:37.781549651Z  Meddelandet skickades framgångsrikt!    0a2af829-05c2-4989-82ab-142e9052668a
+2025-09-30T20:49:46.598262695Z  Skickar meddelande till kön: Test-3     3df5b8dd-fce8-44f3-a551-19accf5644a9
+2025-09-30T20:49:46.607811895Z  Meddelandet skickades framgångsrikt!    3df5b8dd-fce8-44f3-a551-19accf5644a9
 ```
 
 **3) Filtrera enbart konsumentens loggar (timestamp, message, messageId)**
 
 ```bash
-docker logs integration-app \
-  | jq -R 'fromjson? | select(.)' \
-  | jq -r 'select(.logger_name=="com.igorgomes.integration.MessageConsumer")
-           | [.["@timestamp"], .message, .messageId] | @tsv'
+docker logs integration-app 2>&1 \
+| grep -E '^\{' \
+| jq -r 'select(.logger_name=="com.igorgomes.integration.MessageConsumer")
+         | [.["@timestamp"], .message, .messageId] | @tsv'
 ```
 
-Exempelutdata (1 sep 2025):
+Exempelutdata (30 sep 2025):
 
 ```text
-2025-09-01T00:51:54.4817882+02:00       Meddelande mottaget från kön: Test-1    50de7a3b-b8e0-4fe6-8497-3663012fe7e5
-2025-09-01T00:51:54.775159808+02:00     Meddelande sparat i databasen!          50de7a3b-b8e0-4fe6-8497-3663012fe7e5
-2025-09-01T00:52:02.650607228+02:00     Meddelande mottaget från kön: Test-2    244fb974-76a0-422e-9dde-248e1ea536cb
-2025-09-01T00:52:02.667178526+02:00     Meddelande sparat i databasen!          244fb974-76a0-422e-9dde-248e1ea536cb
-2025-09-01T00:52:09.312866768+02:00     Meddelande mottaget från kön: Test-3    ee36e1c6-bbce-4e7e-b4eb-3efa31a8dfec
-2025-09-01T00:52:09.323411022+02:00     Meddelande sparat i databasen!          ee36e1c6-bbce-4e7e-b4eb-3efa31a8dfec
+2025-09-30T18:47:51.605472875Z  Meddelande mottaget från kön: Test-1    486846ae-803d-40d7-b469-d912ceb1667a
+2025-09-30T18:47:52.034032618Z  Meddelande sparat i databasen!          486846ae-803d-40d7-b469-d912ceb1667a
+2025-09-30T20:49:37.801860444Z  Meddelande mottaget från kön: Test-2    0a2af829-05c2-4989-82ab-142e9052668a
+2025-09-30T20:49:38.318218772Z  Meddelande sparat i databasen!          0a2af829-05c2-4989-82ab-142e9052668a
+2025-09-30T20:49:46.603613308Z  Meddelande mottaget från kön: Test-3    3df5b8dd-fce8-44f3-a551-19accf5644a9
+2025-09-30T20:49:46.668624393Z  Meddelande sparat i databasen!          3df5b8dd-fce8-44f3-a551-19accf5644a9
 ```
 
 ## Databasåtkomst (PostgreSQL)
