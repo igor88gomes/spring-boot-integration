@@ -1,4 +1,9 @@
-## Artefakter (CI/CD)
+# Artefakter (CI/CD)
+
+Här listas de artefakter som skapas automatiskt i CI/CD-pipelinen och hur de laddas ner via GitHub Actions.  
+Varje artefakt ger insyn i **testresultat, dokumentation eller säkerhetsanalys** som genereras under bygg- och distributionsflödet.
+
+---
 
 Alla artifacts hämtas via **Actions** i GitHub:
 
@@ -7,7 +12,7 @@ Alla artifacts hämtas via **Actions** i GitHub:
 
 > Obs: Alla artifacts lagras i **14 dagar** och ingår inte i Docker-image (ignoreras i `.gitignore`).
 
-### CI-artifacts
+## CI-artifacts
 
 - **JaCoCo-rapport** (`main` och `test`)  
   → Öppna `index.html` i ZIP:en för täckningen.
@@ -21,12 +26,12 @@ Alla artifacts hämtas via **Actions** i GitHub:
 - **Testrapporter (Surefire/Failsafe)** (**endast vid fel**, **14 dagar**)  
   → `target/surefire-reports/**`, `target/failsafe-reports/**`, `*-jvmRun*.dump`, `*.dumpstream` laddas upp automatiskt om bygget misslyckas (för felsökning i Actions).
 
-### CD-artifacts
+## CD-artifacts
 
 - **SBOM (CycloneDX)**  
   → Öppna `sbom.cdx.json` i ZIP:en.
 
-#### Visa säkerhetsfynd (Code scanning)
+## Visa säkerhetsfynd (Code scanning)
 
 1. Öppna **Security → Code scanning** i GitHub.
 2. Filtrera på verktyg: **Trivy** och **Gitleaks**.
@@ -34,9 +39,5 @@ Alla artifacts hämtas via **Actions** i GitHub:
     - **Gitleaks:** **SARIF** laddas upp vid **push till `main`** och **schemalagd körning**; i **PR** körs snabb skanning som gate (utan SARIF).
 
 > Tips: Du hittar även digesten och multi-arch-info via `docker buildx imagetools inspect <image>:<tag>` om du vill dubbelkolla promotionen.
-
----
-
-> För reproduktion av pipeline i egen miljö krävs egna credentials och registry-konfiguration.
 
 >**Policy:** Se [SECURITY.md](../SECURITY.md) för hur säkerhetsfynd hanteras (ansvarsfull rapportering, scope).

@@ -23,6 +23,8 @@ jobs:
   publish:
     name: Bygg, skanna och publicera
     runs-on: ubuntu-latest
+    timeout-minutes: 15   # Timeout för att undvika hängningar vid nätverksstrul
+
 
     # Krävs för att kunna pusha till GHCR med GITHUB_TOKEN
     permissions:
@@ -193,15 +195,26 @@ jobs:
 
       # Preflight – inspektera exakt kandidat i GHCR (säkerställer att digest/manifest finns)
       - name: Preflight – inspect kandidat i GHCR
-        run: docker buildx imagetools inspect "ghcr.io/${{ steps.ghcr_owner.outputs.owner_lc }}/spring-boot-integration@${{ steps.build.outputs.digest }}"
+        shell: bash
+        run: |
+          set -e
+          docker buildx imagetools inspect "ghcr.io/${{ steps.ghcr_owner.outputs.owner_lc }}/spring-boot-integration@${{ steps.build.outputs.digest }}"
 
       # Främja EXAKT samma artefakt (digest) till :latest i Docker Hub – med retry och felklassificering
       - name: Främja kandidat till :latest (Docker Hub) – retry med klassificering
+        timeout-minutes: 6   # <-- Steg-specifik timeout (slår tidigare än job-timeout vid hängning)
         shell: bash
         run: |
           set -e
           DEST="${{ env.IMAGE_NAME }}:latest"
-          SRC="ghcr.io/${{ steps.ghcr_owner.outputs.owner_lc }}/spring-boot-integration@${{ steps.build.outputs.digest }}"
+          DIGEST="${{ steps.build.outputs.digest }}"
+          SRC="ghcr.io/${{ steps.ghcr_owner.outputs.owner_lc }}/spring-boot-integration@${DIGEST}"
+
+          echo "::group::Promotion – sammanfattning"
+          echo "DEST = ${DEST}"
+          echo "SRC  = ${SRC}"
+          echo "DIGEST byggd i GHCR = ${DIGEST}"
+          echo "::endgroup::"
 
           retriable() { echo "$1" | grep -Eiq '(502|503|504|timeout|timed out|connection reset|EOF)'; }
 
@@ -210,10 +223,13 @@ jobs:
             OUT=$(docker buildx imagetools create --tag "$DEST" "$SRC" 2>&1)
             CODE=$?
             set -e
+
+            echo "::group::Promotion-försök ${i}"
             echo "$OUT"
+            echo "::endgroup::"
 
             if [ $CODE -eq 0 ]; then
-              echo "Promotion successful."
+              echo "Promotion successful → ${DEST} pekar nu på ${DIGEST}"
               exit 0
             fi
 
@@ -235,6 +251,7 @@ jobs:
     name: Rensa artifacts (dockerbuild)
     needs: publish
     runs-on: ubuntu-latest
+    timeout-minutes: 5    # Kortare timeout räcker här
     permissions:
       actions: write
     steps:

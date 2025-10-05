@@ -1,8 +1,10 @@
 # Tester
 
-## Översikt
+Testerna omfattar **Controller**, **Producer**, **Consumer**, **Repository** och **HTTP-kontrakt**. Fokus: **indata-validering**, **korrelation (MDC + JMS)** och **stabila HTTP-svar**.
 
-Testerna täcker **Controller**, **Producer**, **Consumer**, **Repository** och **HTTP-kontrakt**. Fokus: **indata-validering**, **korrelation (MDC + JMS)** och **stabila HTTP-svar**.
+> Alla tester körs i **byggfasen** (lokalt eller i CI) innan applikationsimage skapas och containermiljön kör den redan testade applikationen.
+
+---
 
 ## Testtyper & ramverk
 
@@ -34,7 +36,7 @@ Testerna täcker **Controller**, **Producer**, **Consumer**, **Repository** och 
 - **Miljö:** JPA-test med H2 i **profil `test`** (t.ex. `@DataJpaTest`/`@SpringBootTest` + `TestDatabase`).
 - **Källor/Plats:** `MessageRepositoryTest`
 - **Körning:** Ingår i `mvn test` / `mvn verify`.
-- **Artefakter:** Täcks av JaCoCo-rapport i CI.
+- **Artefakter:** Ingår i JaCoCo-rapporten i CI.
 - **Felsökning:** Säkerställ testprofilen och `application-test.properties` (H2, `ddl-auto=create-drop`) är aktiva.
 
 ## BDD/E2E (Cucumber)
@@ -71,6 +73,8 @@ Testerna täcker **Controller**, **Producer**, **Consumer**, **Repository** och 
 - **Coverage-badge:** CI uppdaterar badge **coverage** (JaCoCo) på `test`; den följer med i PR → `main`. 
 
 **Artefakter (CI/CD):** se [docs/USAGE.md#artefakter-cicd](docs/USAGE.md#artefakter-cicd).
+
+---
 
 ## Kör tester lokalt
 
