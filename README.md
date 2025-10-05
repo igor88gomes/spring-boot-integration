@@ -11,78 +11,73 @@
 [![Multi-arch](https://img.shields.io/badge/multi--arch-amd64%20%7C%20arm64-blue)](docs/USAGE.md#verifiera-multi-arch-amd64--arm64)
 [![Docker Hub](https://img.shields.io/badge/Docker%20Hub-image-blue)](https://hub.docker.com/r/igor88gomes/spring-boot-integration/tags)
 [![Dependabot](https://img.shields.io/badge/Dependabot-enabled-blue)](https://github.com/igor88gomes/spring-boot-integration/pulls?q=is%3Apr+author%3Aapp%2Fdependabot)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 > Av Igor Gomes — DevOps Engineer
 
 > **Obs (säkerhet):** Detta projekt använder automatiska skannrar (**Dependabot**, **Trivy**, **Gitleaks**) som kan rapportera findings. Kritiska/Höga findings hanteras *best-effort*. Se [SECURITY.md](SECURITY.md).
 
-<p align="center">
-  <img src="docs/images/architecture-diagram.png"
-       alt="Arkitekturöversikt – Spring Boot, ActiveMQ och PostgreSQL"
-       width="900">
-</p>
-<p align="center"><em><strong>Bild 1.</strong> Arkitekturöversikt – Spring Boot, ActiveMQ och PostgreSQL. <strong>Arkitekturstil:</strong> modulär monolit (meddelandebaserad via JMS).</em></p>
+## Projektöversikt
 
-<p align="center">
-  <img src="docs/images/cicd-pipeline-diagram.png"
-       alt="CI/CD-pipeline – Spring Boot, Docker och GitHub Actions"
-       width="900">
-</p>
-<p align="center"><em><strong>Bild 2.</strong> Översikt av CI/CD-pipeline. Diagrammet visar huvudflödet: bygg, test, säkerhetsskanning samt image-publicering och distribution.</em></p>
+Detta projekt visar hur man kan bygga en **spårbar integrationskedja** (**REST → JMS → DB**) med inbyggd **säkerhet** och **CI/CD**.
 
-## Applikationsöversikt
+Syftet är att:
+- Förenkla felsökning genom **korrelations-ID** och tydliga loggar.
+- Öka observabiliteten med automatiserad testbarhet och mätning.
+- Möjliggöra **reproducerbara deploymenter** via containerisering och pipelines.
 
-En **meddelandebaserad integrationsapplikation** (REST → ActiveMQ/JMS → PostgreSQL) som demonstrerar mönster inspirerade av ICC (Integration Competency Center).
+> Fokus ligger på att visa hur integration, spårbarhet och DevSecOps kan kombineras i ett modernt DevOps-flöde snarare än att täcka alla möjliga integrationsscenarier.
 
-### Teknikstack (översikt)
-**Applikation:** Spring Boot 3, ActiveMQ (JMS), JPA, H2 (CI), PostgreSQL (container)  
-**Plattform & verktyg:** Docker/Compose, GitHub Actions, Trivy, Gitleaks, Dependabot, GHCR/Docker Hub, SBOM
+Projektet består av tre huvuddelar: **Applikationen**, **CI/CD-pipeline** och **Infrastrukturen**.
 
-> **Build-image för applikationen:** CI/CD-byggd image återanvänds i lokal Compose-miljö (samma digest).
+### Applikationen
+En meddelandebaserad integrationskedja (**REST → JMS → DB**) med spårbarhet (korrelations-ID), validering, JSON-loggar, observabilitet och en komplett testpyramid (enhetstest/kontrakt/BDD/E2E).
 
-### Funktionalitet (kort)
-- Exponerar **REST-API** (Spring Boot)
-- Asynkron meddelandeöverföring via **ActiveMQ (JMS)**
-- Persistent lagring i **PostgreSQL (JPA)**
-- **Korrelation & observabilitet:** JSON-loggar, korrelations-ID, `/actuator/health`
-- Körs **containeriserat** (Docker/Compose)
-- **Automatiska tester** i CI (H2-databas, inbäddad ActiveMQ)
+### CI/CD-pipeline
+En **CI/CD-pipeline** som kör testerna automatiskt, mäter **kodtäckning med JaCoCo** och publicerar rapport/badge. Den integrerar också DevSecOps-principer (sårbarhetsskanning med Trivy,
+hemlighetsskanning med Gitleaks, SBOM med CycloneDX och reproducerbara multi-arch Docker-images).
 
-I **CI/testprofil** körs tester **isolerat mot H2 (in-memory)** för snabba feedback-loopar och stabila, pålitliga resultat i pipeline; **PostgreSQL** används i **containermiljö (Docker Compose)** tillsammans med ActiveMQ och applikationsimagen.
-> **Obs (JMS i CI):** CI kör mot **inbäddad ActiveMQ** (`vm://embedded`) för att undvika externa beroenden; containern **activemq** används endast lokalt med Compose.
+### Infrastrukturen (runtime)
+Kör applikationen i **Docker Compose** tillsammans med ActiveMQ och PostgreSQL. Här används **exakt samma image/digest** som pipelinen har byggt, testat, skannat och publicerade på **Docker Hub**.
 
-Målet är inte att täcka alla integrationsscenarier, utan att ge en praktisk inblick i hur olika tekniker kan kombineras i ett modernt DevOps-flöde.
+### Vilket problem löser projektet?
+- Integrationer misslyckas ofta inte bara på kodnivå, utan i hur de byggs, testas och körs i drift.  
+  → Projektet visar hur detta kan hanteras med en spårbar och containeriserad kedja **REST → JMS → DB**.
+- Brist på spårbarhet gör det svårt att följa ett anrop end-to-end.  
+  → Här används **korrelations-ID i hela flödet** för att möjliggöra felsökning på detaljnivå.
+- Otillräcklig testbarhet gör det svårt att reproducera kedjan i CI.  
+  → Projektet innehåller en **fullständig testpyramid (enhetstest, kontrakt, BDD/E2E)** som körs automatiskt i CI.
+- Låg insyn i leveransflödet (osäkra images, saknade SBOM).  
+  → Här integreras **DevSecOps-principer** med sårbarhetsskanning (Trivy), hemlighetsskanning (Gitleaks), SBOM (CycloneDX) och reproducerbara multi-arch Docker-images.
 
-### Principer (kort)
-- **12-factor (Config):** miljövariabler; `.env.example`; **inga hemligheter i koden**.
-- **Observerbarhet:** **JSON-loggar**, **MDC/korrelations-ID**, **/actuator/health**, tidsstämplar i **UTC**.
-- **Backing services:** ActiveMQ (JMS) och PostgreSQL konfigureras via env (`BROKER_URL`, `DB_*`).
+### Varför är det viktigt?
+- Utan spårbarhet och robust testning blir integrationer svåra att underhålla och ännu svårare att felsöka i drift.
+- Genom att kombinera **korrelation med `messageId`**, **automatiska tester i CI (H2 + inbäddad ActiveMQ)**, **kontraktstester (SCC)** och **BDD/E2E-scenarier** kan projektet visa hur kvalitet säkras redan innan kod når produktion.
+- Att dessutom integrera **säkerhet i flödet** med **sårbarhetsskanning (Trivy)**, **hemlighetsskanning (Gitleaks)** och **SBOM (CycloneDX)** gör att leveranskedjan blir transparent och pålitlig.
 
-> **CI/CD:** För detaljer, se avsnitten nedan. Se även **Bild 2** för pipelineflödet.
-
-**Snabblänkar (CI/CD):**
-- [Bygg / CI & dokumentation (GitHub Actions)](#bygg--ci--dokumentation-github-actions)
-- [Distribution (CD) – Docker-image (GitHub Actions)](#distribution-cd--docker-image-github-actions)
-- [docs/ARTIFACTS.md#ci-artifacts](docs/ARTIFACTS.md#ci-artifacts)
-- [docs/ARTIFACTS.md#cd-artifacts](docs/ARTIFACTS.md#cd-artifacts)
+### Vilket värde skapar det i drift?
+I praktiken innebär detta att samma artefakt kan följas från kod → test → produktion:
+- **Multi-arch Docker-images** byggs i CI, skannas, och **publiceras först som kandidat i GHCR**.
+- Efter **preflight-inspect**, **retry vid transienta fel** och **promotion av exakt samma digest** publiceras den till Docker Hub.
+- Detta ger **reproducerbara deploymenter**, kortare MTTR tack vare korrelationsloggar i JSON, och en tryggare kedja där både **kvalitet och säkerhet** är inbyggda från början.
+- I drift används **exakt samma image** i Docker Compose, vilket säkerställer konsekvent beteende mellan pipeline och runtime.
+- Eftersom imaget är multi-arch och publiceras med reproducerbara digest kan det lika enkelt användas i Kubernetes eller andra containerplattformar.
 
 ---
 
-## Arkitektur & korrelation (översikt)
+## Applikationen
 
-Se **Bild 1** ovan. Diagrammet visar den asynkrona, meddelandebaserade integrationsarkitekturen i 
-applikationen.
+### Arkitektur & korrelation (översikt)
 
-1. Klienten (t.ex. Postman eller curl) skickar ett meddelande via REST-endpointen `/api/send`.
+Två huvudflöden finns i applikationen:
 
-2. `MessageProducer` publicerar meddelandet till en ActiveMQ-kö.
+- **Skrivflöde (`POST /api/send`):**  
+  `Klient → Controller → Producer → [ActiveMQ] → Consumer → JPA → DB`
 
-3. `MessageConsumer` lyssnar på kön och lagrar meddelandet i PostgreSQL-databasen.
+- **Läsflöde (`GET /api/all`):**  
+  `Klient → Controller → JPA → DB`
 
-4. Klienten kan hämta alla sparade meddelanden via `/api/all`, vilket anropar `MessageController` och 
-   hämtar data med hjälp av JPA.
-
-> Arkitekturen möjliggör spårbar och tillförlitlig kommunikation i en modulär och lättunderhållen lösning.
+> Persistens sker via **JPA**. Vald databas beror på körmiljö (t.ex. H2 i CI, PostgreSQL i Compose).
 
 ### Affärs-API (REST)
 
@@ -125,8 +120,7 @@ curl http://localhost:8080/actuator/info
 ## Spårbarhet & korrelations-ID (översikt)
 
 
-Applikationen loggar i **JSON** (Logback + MDC) och inkluderar ett **messageId** som följer hela flödet (Controller → Producer/JMS → Consumer/JPA). 
-I container-miljö körs **stdout-only** – loggar läses via `docker|podman logs`.
+Applikationen loggar i **JSON** (Logback + MDC) och inkluderar ett **messageId** som följer hela flödet (Controller → Producer/JMS → Consumer/JPA).
 
 **Affärs-anrop:**
 
@@ -162,116 +156,67 @@ curl -X POST "http://localhost:8080/api/send?message=TestIntegration"
 - **Producer**: Läser `messageId` från MDC och skickar som **JMS-header**; rör inte MDC.
 - **Consumer**: Läser headern `messageId`, lägger in i MDC under bearbetning för loggkorrelation och tar bort just den nyckeln i `finally`.
 
-Detta gör att samma `messageId` kan följas från HTTP-ingången, via kön, till persistens. 
-Se [docs/USAGE.md](docs/USAGE.md) för fler detaljer och körningskommandon.
+Detta gör att samma `messageId` kan följas från HTTP-ingången, via kön, till persistens.
+Se [docs/USAGE.md](docs/USAGE.md) för fler detaljer.
 
-## Testöversikt
+### Testbarhet (översikt)
+Applikationen valideras med en komplett testpyramid:
+- Enhetstester för **Controller**, **Producer**, **Consumer** och **Repository**
+- **Kontraktstester (SCC)** för HTTP-kontrakt
+- **BDD/E2E (Cucumber)** som verifierar kedjan **HTTP → JMS → DB**
 
-- **Controller:** Konsistenta statuskoder (**200/400**) och korrekta headers.
-- **Producer (JMS):** Korrelation via `messageId` (MDC → JMS-header) och korrekt felhantering (logga, ej propagera).
-- **Consumer (JMS):** Läser `messageId`, persisterar meddelanden och bibehåller korrelations-ID.
-- **Repository (JPA/H2):** Baspersistens, `@NotBlank`-validering och att `receivedAt` sätts.
-- **Kontrakt/BDD:** Säkerställer 200/400 och kedjan **HTTP → JMS → DB** end-to-end.
+Detaljer om scenarier och kommandon finns i [docs/TESTS.md](docs/TESTS.md).
 
-Se [docs/TESTS.md](docs/TESTS.md) för fler detaljer om testerna.  
-**Artefakter (CI/CD):** se [docs/ARTIFACTS.md](docs/ARTIFACTS.md).
+## CI/CD-pipeline
 
-## Körning (Runtime)
+<p align="center">
+  <img src="docs/images/cicd-pipeline-diagram.png"
+       alt="CI/CD-pipeline – Spring Boot, Docker och GitHub Actions"
+       width="900">
+</p>
+<p align="center"><em><strong>Bild 1.</strong> Översikt av CI/CD-pipeline. Diagrammet visar huvudflödet: bygg, test, säkerhetsskanning samt image-publicering och distribution.</em></p>
+
+### Plattform & verktyg (CI/CD)
+**Pipeline:** GitHub Actions (CI/CD), Docker Buildx (multi-arch), GHCR (candidate), Docker Hub (public release)  
+**Säkerhet:** Trivy (container scanning), Gitleaks (secret scanning), Dependabot (uppdateringar), CycloneDX SBOM  
+**Artefakter:** JaCoCo (coverage), Javadoc, SCC-stubs, SARIF (security findings), SBOM
+
+> **Policy:** Lokalt Compose återanvänder **samma digest** som byggs i CD (GHCR → promotion till Docker Hub) för reproducerbara deploymenter.
+
+### Flöde i korthet
+1. **CI (build & test):** `mvn verify` (H2 + embedded ActiveMQ) → JaCoCo-rapport → badges/artefakter.
+2. **Image (candidate):** Buildx bygger **linux/amd64, linux/arm64** och pushar till **GHCR** med rika OCI-etiketter.
+3. **Skanning:** Trivy kör quality gate (CRITICAL blockerar; HIGH rapporteras som **SARIF**).
+4. **Preflight:** `imagetools inspect` på exakta digestet.
+5. **Promotion:** **Samma digest** pushas till Docker Hub med retry/backoff och steg-timeouts.
+6. **SBOM & rapporter:** CycloneDX SBOM + SARIF + övriga artefakter kan laddas ner från Actions.
+
+**Snabblänkar för Mer detaljer om pipelinestrategin, flöden och quality gates finns i :**
+- **CI/CD-pipeline** [docs/PIPELINE.md](docs/PIPELINE.md)
+- **Artefakter** [docs/ARTIFACTS.md](docs/ARTIFACTS.md)
+
+## Infrastrukturen (runtime)
+
+<p align="center">
+  <img src="docs/images/architecture-diagram.png"
+       alt="Arkitekturöversikt – Spring Boot, ActiveMQ och PostgreSQL"
+       width="900">
+</p>
+<p align="center"><em><strong>Bild 2.</strong> Runtime-arkitektur – applikationen körs i Docker Compose tillsammans med ActiveMQ och PostgreSQL. <strong>Arkitekturstil:</strong> modulär monolit (meddelandebaserad via JMS).</em></p>
+
+## Körning 
 
 **Hela stacken körs containeriserad med Docker Compose** (stöd för Podman Compose):
-    
-- `integration-app` – applikationen (image: `igor88gomes/spring-boot-integration:latest`, **byggs och pushas av CD-pipelinen**)
-- `activemq` – ActiveMQ (JMS)
-- `postgres` – PostgreSQL
 
-> **Obs:** Java 17 ingår i applikationsimagen; inget lokalt JDK krävs.
+- `integration-app` – applikationen (image: `igor88gomes/spring-boot-integration:latest`, **byggs och pushas av CI/CD-pipelinen**)
+- `activemq` – ActiveMQ (JMS) (image: `rmohr/activemq:5.15.9`)
+- `postgres` – PostgreSQL (image: `postgres:13`)
 
-### Branch-strategi (kort)
+**Hälsa & startordning:** Alla tjänster har `healthcheck`; `integration-app` startar först när **ActiveMQ** och **PostgreSQL** är *healthy*.  
+**Loggning:** `integration-app` Kör med profilen `stdout-only` så att loggar går till stdout/stderr (12-factor).  
+**Java:** Applikationsimagen innehåller **Java 17 (JRE)** och inget lokalt JDK krävs.
 
-- Dagligt arbete i `test`; PR → `main` med **squash-merge**.
-- Obligatoriska checks på PR: **CI** + **Secret Scan (Gitleaks)**.
-- Release: **push till `main`** triggar CD och publicering till Docker Hub.
-- **Regler (`main`):** **squash-only**, **linear history**, **blockera force pushes**, **kräver uppdaterad branch före merge**, och **obligatoriska status checks:** `build` + `gitleaks`.
-
-### Bygg / CI & dokumentation (GitHub Actions)
-
-- **Workflow:** `.github/workflows/ci.yaml`
-- **Trigger:** push till `main` och `test`; PR till `main` 
-
-- **Steg:**
-  - **Steg 1 – Checkout & JDK 17:** checka ut källkod och konfigurera Java.
-  - **Steg 2 – Bygg & tester (Maven/H2):** kör `mvn verify` med H2 för isolerade tester.
-  - **Steg 3 – Kodtäckning (JaCoCo + badge):** generera rapport, ladda upp som artefakt och uppdatera coverage-badge.
-  - **Steg 4 – JavaDoc (endast på `main`):** generera och ladda upp som artefakt.
-  - **Steg 5 – Stubs (SCC), (endast `main`):** stubs **genereras av Spring Cloud Contract under `mvn verify`** och CI **laddar upp `*-stubs.jar` som artefakt** (om finns).
-  - **Steg 6 – Felsökning (endast vid fel):** ladda upp testrapporter (**Surefire/Failsafe**) – `target/surefire-reports/**`, `target/failsafe-reports/**` + dumpfiler för att förenkla felsökning i Actions.
-
-- **Artefakter:**
-  - `jacoco-report` (main/test, **retention 14 dagar**)
-  - `javadocs` (endast `main`, **14 dagar**)
-  - `stubs` (endast `main`, **14 dagar**) – genererade av Spring Cloud Contract för konsumenttester
-  - `surefire-reports` (**endast vid fel**, **14 dagar**) – **Surefire/Failsafe**-rapporter och dumpfiler för felsökning
-
-#### Secret scanning (Gitleaks)
-
-- **Workflow (fristående):** `secret-scan.yaml` körs separat från CI.
-- **Schema (UTC):** måndagar **03:00 UTC** (full historikskanning + SARIF).
-- **Policy:** PR blockeras vid fynd (exit ≠ 0).
-- **SARIF:** genereras och laddas upp **vid push till `main`** och vid den schemalagda körningen till *Security → Code scanning*.
-- **Beteende:**
-  - PR = snabb skanning av ändringar (`--no-git`)
-  - Push/schedule = full historik (checkout `fetch-depth: 0`) + SARIF
-- **Konfig:** `.gitleaks.toml` (ignorerar `.env.example`, `application-test.properties`; placeholders: `changeme`, `to-be-set`, `example`, `dummy`).
-
-### Distribution (CD) – Docker-image (GitHub Actions)
-
-- **Workflow:** `.github/workflows/docker-publish.yaml`
-- **Trigger:** `push` till `main` *(ej PR)*
-
-- **Publiceringsflöde:**
-  1. **Build (candidate, privat):** Buildx bygger **multi-arch** (`linux/amd64, linux/arm64`) och pushar en **candidate-image** till **GHCR** (privat) med rika **OCI-etiketter**  
-     – taggar baserade på commit SHA.
-  2. **Trivy – quality gate:** container-skanning av candidate-imagen.  
-     – **CRITICAL** sårbarheter blockerar; **HIGH** rapporteras som **SARIF** till *Security → Code scanning*.
-  3. **Promotion:** om spärren passerar, **promoteras exakt samma digest** till **Docker Hub** som `igor88gomes/spring-boot-integration:latest`.
-  4. **SBOM (insyn):** **CycloneDX SBOM** (`sbom.cdx.json`) laddas upp som **Actions-artefakt** (**retention 14 dagar**).
-  5. **Rensning:** temporära Docker Desktop-buildfiler (`*.dockerbuild`) tas bort i jobben för att hålla run-loggen ren.
-
-#### Säkerhet & kontroll
-
-- **Concurrency:** `concurrency.group=docker-publish-${{ github.ref }}` och `cancel-in-progress: true` förhindrar parallella dubbletter.
-- **Retention (GHCR):** candidate-images märks bl.a. med  
-  `org.opencontainers.image.ref.name=candidate` och `ghcr.io/retention-days=14` → autosanering efter 14 dagar.
-- **Behörigheter:** workflow ger **packages: write**, **security-events: write**, **contents: read** för att kunna publicera images och skicka SARIF.
-
-- **Resultat:**
-
-  - **GHCR (privat):** *candidate* (per-commit) – för skanning och spårbarhet.
-  - **Docker Hub (publik):** `:latest` – **multi-arch** och redo för `docker/podman-compose`.
-
-## Säkerhet & Underhåll
-
-> **Policy:** Se [SECURITY.md](SECURITY.md) för hur findings hanteras (ansvarsfull rapportering, scope och SLA).
-
-### Beroendehantering (Dependabot)
-
-- **Schema (UTC) & flöde**
-  - **Maven (app):** **måndagar 01:00 UTC** → PR till `test`  
-    – *en körning, två grupper*:
-    - `maven-security` – **endast säkerhetsuppdateringar**
-    - `maven-patch-minor` – **patch/minor för direkta beroenden**
-  - **GitHub Actions (CI):** **måndagar 01:15 UTC** → PR till `test`  
-    – versionbumps **grupperas** (patch/minor) och säkerhetsuppdateringar kommer när advisories finns.
-  - **Tidszon:** alla tider är **UTC** för konsekventa körningar året runt.
-
-- **Policy**
-  - PR-gruppering och **auto-rebase**; **target branch:** `test`.
-  - **Majors** (t.ex. `spring-boot`) ignoreras här och planeras separat.
-  - **Branchskydd:** PR kräver **grön CI** (build + tester) och **Gitleaks** innan merge.
-
-### Kodskanning (SARIF)
-
-Alla säkerhetsresultat från både **Gitleaks** (hemligheter) och **Trivy** (image-skanning) laddas upp som **SARIF** till *Security → Code scanning* för central analys och historik.
+Se [docs/USAGE.md](docs/USAGE.md) för fler detaljer och körningskommandon.
 
 ## Projektstruktur
 
@@ -279,7 +224,7 @@ Alla säkerhetsresultat från både **Gitleaks** (hemligheter) och **Trivy** (im
 spring-boot-integration/
 │
 ├── .github/workflows/      # CI/CD-workflows (ci.yaml, docker-publish.yaml, secret-scan.yaml)
-├── .gitignore              # Ignorerade filer (t.ex. target/, logs/, .env)
+├── .gitignore              # Ignorerade filer (t.ex. target/, .env)
 ├── .dockerignore           # Utesluter onödiga filer från Docker build-context
 ├── .gitleaks.toml          # Regler för secret scanning (Gitleaks)
 ├── dependabot.yaml         # Automatiska dependency-uppdateringar
@@ -290,6 +235,7 @@ spring-boot-integration/
 ├── Dockerfile              # Bygger applikationsimagen
 ├── docker-compose.yaml     # Lokal orkestrering (app, ActiveMQ, PostgreSQL)
 ├── SECURITY.md             # Säkerhetspolicy & hantering av findings
+├── LICENSE                 # MIT License för projektet
 └── README.md               # Projektöversikt
 ```
 
@@ -297,8 +243,10 @@ spring-boot-integration/
 
 - **Användning:** [docs/USAGE.md](docs/USAGE.md)  
 - **Tester:** [docs/TESTS.md](docs/TESTS.md)
+- **CI/CD-pipeline** [docs/PIPELINE.md](docs/PIPELINE.md)
 - **Artefakter** [docs/ARTIFACTS.md](docs/ARTIFACTS.md)
 - **Säkerhetspolicy:** [SECURITY.md](SECURITY.md)
+- **Licens:** [LICENSE](LICENSE)
 
 ## Kontakt
 

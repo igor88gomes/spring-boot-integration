@@ -1,12 +1,7 @@
 # Användarguide
 
-## Tips
-
-### Tester lokalt
-
-- Man kan köra alla tester **lokalt (utan Docker)** direkt med Maven. Dessa använder H2 och inbäddad ActiveMQ för snabb feedback.
-
-För detaljer, se [TESTS.md](TESTS.md#kör-tester-lokalt).
+Denna guide visar hur man kan starta och testa applikationen i containermiljö med Docker Compose. Syftet är att snabbt kunna köra 
+hela flödet end-to-end med ActiveMQ, PostgreSQL och applikationen.
 
 ## Förutsättningar
 
