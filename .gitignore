@@ -55,6 +55,7 @@ docs/images/*
 !docs/USAGE.md
 !docs/TESTS.md
 !docs/ARTIFACTS.md
+!docs/PIPELINE.md
 .env
 !.env.example
 
