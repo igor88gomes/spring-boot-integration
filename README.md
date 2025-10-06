@@ -20,7 +20,6 @@ kontinuerliga säkerhetsövervakningen i CI/CD-flödet. Dessa findings ingår so
 sårbarheter blockeras automatiskt, medan högre nivåer rapporteras som **SARIF** i *GitHub repository → Security → Code scanning 
 alerts*. Se [SECURITY.md](SECURITY.md) för policy och hantering av findings.
 
-
 ## Projektöversikt
 
 Detta projekt visar hur man kan bygga en **spårbar integrationskedja** (**REST → JMS → DB**) med inbyggd **säkerhet** och **CI/CD**.
