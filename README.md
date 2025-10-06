@@ -15,7 +15,11 @@
 
 > Av Igor Gomes — DevOps Engineer
 
-> **Obs (säkerhet):** Detta projekt använder automatiska skannrar (**Dependabot**, **Trivy**, **Gitleaks**) som kan rapportera findings. Kritiska/Höga findings hanteras *best-effort*. Se [SECURITY.md](SECURITY.md).
+> **Obs (säkerhet):** Code scanning visar **aktiva findings** via **Trivy**, **Dependabot** och **Gitleaks** som en del av den 
+kontinuerliga säkerhetsövervakningen i CI/CD-flödet. Dessa findings ingår som en del av den löpande säkerhetskontrollen. Kritiska 
+sårbarheter blockeras automatiskt, medan högre nivåer rapporteras som **SARIF** i *GitHub repository → Security → Code scanning 
+alerts*. Se [SECURITY.md](SECURITY.md) för policy och hantering av findings.
+
 
 ## Projektöversikt
 
