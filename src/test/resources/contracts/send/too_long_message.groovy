@@ -10,12 +10,11 @@ org.springframework.cloud.contract.spec.Contract.make {
         method 'POST'
         url('/api/send') {
             queryParameters {
-                // 300 > 256
-                parameter 'message': value(consumer('x' * 300), producer('x' * 300))
+                parameter 'message': value(consumer('x' * 300), producer('x' * 300)) // 300 > 256
             }
-        }
-        headers {
-            header 'Accept-Language': value(consumer('sv-SE'), producer('sv-SE'))
+            headers {
+                header 'Accept-Language': value(consumer('sv-SE'), producer('sv-SE'))
+            }
         }
     }
 
@@ -30,9 +29,15 @@ org.springframework.cloud.contract.spec.Contract.make {
                 errors: [
                         [
                                 field  : 'message',
+                                // Exempeltext – behåll tydlig svensk formulering
                                 message: "Parametern 'message' får vara högst 256 tecken."
                         ]
                 ]
         )
+        // Säkerställ att felet gäller fältet och att texten refererar till 256
+        matchers {
+            jsonPath('$.errors[0].field', byEqualTo('message'))
+            jsonPath('$.errors[0].message', byRegex('.*256.*'))
+        }
     }
 }
