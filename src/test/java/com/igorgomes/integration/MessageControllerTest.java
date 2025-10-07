@@ -10,13 +10,19 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import org.slf4j.MDC;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+
+import org.springframework.validation.beanvalidation.MethodValidationPostProcessor;
+import org.springframework.beans.factory.support.DefaultListableBeanFactory;
+import jakarta.validation.ConstraintViolationException;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
+
 
 /**
  * Tester för MessageController.
@@ -41,8 +47,19 @@ class MessageControllerTest {
 
     @BeforeEach
     void setUp() {
-        // Skapar controller med mockade beroenden (samma som i produktion, via konstruktor)
         controller = new MessageController(messageProducer, messageRepository);
+
+        MethodValidationPostProcessor processor = new MethodValidationPostProcessor();
+        Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
+        processor.setValidator(validator);
+
+        // >>> inicializações necessárias quando usado fora do container Spring
+        processor.setBeanFactory(new DefaultListableBeanFactory());
+        processor.setProxyTargetClass(true);   // usa proxy CGLIB da classe
+        processor.afterPropertiesSet();        // monta o advisor de validação
+
+        controller = (MessageController) processor.postProcessAfterInitialization(
+                controller, "messageController");
     }
 
     @AfterEach
@@ -57,9 +74,10 @@ class MessageControllerTest {
     @Test
     @DisplayName("returns 400 when message is blank")
     void sendMessage_returns400_whenBlank() {
-        assertThrows(ResponseStatusException.class, () -> controller.sendMessage(" "));
+        assertThrows(ConstraintViolationException.class, () -> controller.sendMessage("   "));
         verifyNoInteractions(messageProducer);
     }
+
 
     /**
      * Säkerställ 200/OK-liknande svar (sträng) och att Producer anropas när indata är giltig.

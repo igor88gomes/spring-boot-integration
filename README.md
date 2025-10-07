@@ -94,12 +94,29 @@ Två huvudflöden finns i applikationen:
 curl -X POST "http://localhost:8080/api/send?message=TestIntegration"
 curl http://localhost:8080/api/all
 ```
-> **Validering:** `POST /api/send` returnerar **400 (Bad Request)** om parametern `message` är tom eller endast blanktecken (*whitespace*).
+
+> **Validering & fel (400):** `POST /api/send` returnerar **400 (Bad Request)** när:
+> - `message` är tomt/blankt,
+> - `message` innehåller ogiltiga tecken,
+> - `message` överskrider **256 tecken**.
 
 ```bash
 # Exempel: parametern `message` är tom/blank
 curl -i -X POST http://localhost:8080/api/send -d "message= "
 ```
+
+> Vid 400 returneras **ProblemDetail (RFC 7807)** som `application/problem+json`:
+>
+> ```json
+> {
+>   "title": "Valideringsfel",
+>   "status": 400,
+>   "errors": [ { "field": "message", "message": "..." } ],
+>   "path": "/api/send"
+> }
+> ```
+>
+> **Lokalisering (sv-SE):** Felmeddelanden vid validering är lokaliserade. Genom att skicka `Accept-Language: sv-SE` returnerar API:t texter från `ValidationMessages_sv.properties`. Detta verifieras i controller- och kontraktstester för 400-svaren.
 
 ### Övervakning (Actuator-API)
 
@@ -167,6 +184,8 @@ Applikationen valideras med en komplett testpyramid:
 - Enhetstester för **Controller**, **Producer**, **Consumer** och **Repository**
 - **Kontraktstester (SCC)** för HTTP-kontrakt
 - **BDD/E2E (Cucumber)** som verifierar kedjan **HTTP → JMS → DB**
+
+> Konsekvent **RFC 7807** i valideringstester (Controller) och i **SCC-kontrakt** för fel (400) med `errors[0].field = "message"`.
 
 Detaljer om scenarier och kommandon finns i [docs/TESTS.md](docs/TESTS.md).
 
@@ -255,5 +274,4 @@ spring-boot-integration/
 
 Igor Gomes — DevOps Engineer  
 [LinkedIn](https://www.linkedin.com/in/igor-gomes-5b6184290) 
-[Docker Hub](https://hub.docker.com/r/igor88gomes/spring-boot-integration/tags)  
 **E-post:** [igor88gomes@gmail.com](mailto:igor88gomes@gmail.com)
