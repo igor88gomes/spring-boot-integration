@@ -17,17 +17,25 @@ Testerna omfattar **Controller**, **Producer**, **Consumer**, **Repository** och
 
 ## Enhet/Web-slice
 
-- **Syfte:** Verifiera HTTP-lager (statuskoder, headers) och producentlogik utan externa beroenden.
+- **Syfte:** Verifiera HTTP-lager (statuskoder, headers och valideringsformat) samt producentlogik utan externa beroenden.
 - **Omfattning (exempel):**
-  - Controller: `POST /api/send` (**200/400** + `Content-Type: text/plain`), `GET /api/all` (**200** + `application/json`).
+  - Controller:
+    - `POST /api/send`
+      - **200** → `Content-Type: text/plain` (svart med enkel text).
+      - **400** → `Content-Type: application/problem+json` (**RFC 7807**) med struktur `{"title","status","errors":[{"field":"message","message":"..."}],"path"}`.
+    - `GET /api/all` → **200** + `application/json`.
   - Producer: sätter `messageId`-header när MDC finns; loggar fel utan att propagera undantag.
+  - **Lokaliserade felmeddelanden:** skicka `Accept-Language: sv-SE` ⇒ texter från `ValidationMessages_sv.properties`.
 - **Miljö:** Spring Boot Test (web-slice) + **MockMvc**/**Mockito**; inga externa tjänster.
 - **Källor/Plats:**
-  - `MessageControllerTest`, `MessageControllerHttpErrorsTest`,
+  - `MessageControllerTest`, `MessageControllerHttpErrorsTest`, `MessageControllerValidationTest`,
   - `MessageProducerTest`, `MessageProducerErrorTest`
 - **Körning:** Ingår i `mvn test` / `mvn verify` (Surefire).
 - **Artefakter:** Täcks av JaCoCo-rapport i CI.
-- **Felsökning:** Vid fel `400`/`Content-Type`, kontrollera controller-annoteringar (t.ex. `produces = MediaType.TEXT_PLAIN_VALUE`) och validering av `message`.
+- **Felsökning:**
+  - Vid 400 utan korrekt `Content-Type`: kontrollera att `ValidationErrorAdvice` sätter **`MediaType.APPLICATION_PROBLEM_JSON`**.
+  - Vid 406/negotiation-problem: verifiera `produces` på controller/handlers (t.ex. `text/plain` för 200).
+  - Om `errors[]` saknar fältet `message`: säkerställ att valideringen binder till rätt fältnamn.
 
 ## Persistens (H2)
 
@@ -59,20 +67,26 @@ Testerna omfattar **Controller**, **Producer**, **Consumer**, **Repository** och
 ## Kontrakt (SCC)
 
 - **Syfte:** Säkerställa HTTP-kontraktet (statuskoder/validering och `Content-Type`) mot API:t.
-- **Omfattning:** `contracts/valid_message.groovy` (200 + `text/plain`) och `contracts/invalid_message.groovy` (400).
+- **Omfattning:**
+  - `contracts/send/valid_message.groovy` → **200** + `text/plain`. 
+  - **Negativa kontrakt (400 + `application/problem+json`, RFC 7807):**
+    - `contracts/send/blank_message.groovy`. 
+    - `contracts/send/invalid_chars_message.groovy`. 
+    - `contracts/send/too_long_message.groovy`. 
+      Varje felkontrakt verifierar att `errors[0].field == "message"` och att meddelandet är lokaliserat (sv-SE).
 - **Miljö:** MVC-slice via `BaseContractTest` — inga externa tjänster krävs.
-- **Källor/Plats:** `src/test/resources/contracts/*`
+- **Källor/Plats:** `src/test/resources/contracts/send/*`
 - **Körning:** Ingår automatiskt i `mvn verify` (SCC **generateTests** + **convert**) och körs sedan som vanliga JUnit-tester.
 - **Artefakter:** Genererade JUnit-tester samt **`stubs.jar`** för konsumenter.
-- **Felsökning:** Vid mismatch (t.ex. fel status/`Content-Type`), kontrollera kontrakten och att `BaseContractTest` mappar rätt controller.
+- **Felsökning:** Vid mismatch (status/`Content-Type`/payload), kontrollera kontrakten, att `BaseContractTest` mappar rätt controller, och att `ValidationErrorAdvice` returnerar `application/problem+json` vid 400.
 
 ## Sammanfattning: Körning & Artefakter
 
 - **Lokal/CI:** `mvn verify` kör alla JUnit, Cucumber och **SCC**-tester.
 - **Artefakter (CI):** JaCoCo-rapport, JavaDoc (**endast main**) och **stubs.jar** från SCC.
-- **Coverage-badge:** CI uppdaterar badge **coverage** (JaCoCo) på `test`; den följer med i PR → `main`. 
+- **Coverage-badge:** CI uppdaterar badge **coverage** (JaCoCo) på `test`; den följer med i PR → `main`.
 
-**Artefakter (CI/CD):** se [docs/USAGE.md#artefakter-cicd](docs/USAGE.md#artefakter-cicd).
+**Artefakter (CI/CD):** se [docs/ARTIFACTS.md](docs/ARTIFACTS.md).
 
 ---
 
