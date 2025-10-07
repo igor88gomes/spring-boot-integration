@@ -27,15 +27,11 @@ org.springframework.cloud.contract.spec.Contract.make {
                 status: 400,
                 title : 'Valideringsfel',
                 errors: [
-                        [
-                                field  : 'message',
-                                // Exempeltext – behåll tydlig svensk formulering
-                                message: "Parametern 'message' får vara högst 256 tecken."
-                        ]
+                        [ field: 'message',
+                          message: "Parametern 'message' får vara högst 256 tecken." ]
                 ]
         )
-        // Säkerställ att felet gäller fältet och att texten refererar till 256
-        matchers {
+        bodyMatchers {
             jsonPath('$.errors[0].field', byEqualTo('message'))
             jsonPath('$.errors[0].message', byRegex('.*256.*'))
         }

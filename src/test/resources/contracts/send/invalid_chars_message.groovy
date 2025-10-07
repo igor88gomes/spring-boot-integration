@@ -23,29 +23,22 @@ org.springframework.cloud.contract.spec.Contract.make {
     response {
         status 400
         headers {
-            // Byt från generisk JSON till exakt ProblemDetail-typ
             header('Content-Type', 'application/problem+json')
         }
         body(
                 status: 400,
-                title : 'Valideringsfel',
+                title: 'Valideringsfel',
                 errors: [
-                        [
-                                field  : 'message',
-                                // Exempeltext – i vissa miljöer kommer varianten med "Endast bokstäver…"
-                                message: "Otillåtna tecken i 'message'. Tillåtna: bokstäver, siffror, blanksteg samt - _ . : , ! ?"
-                        ]
+                        [ field: 'message',
+                          // Aceite as duas variantes comuns de texto em sueco via matcher abaixo
+                          message: 'Otillåtna tecken i \'message\'. Tillåtna: bokstäver, siffror, blanksteg samt - _ . : , ! ?' ]
                 ]
         )
-        // Acceptera båda vanliga svenska varianterna av feltexten
-        matchers {
+        bodyMatchers {
             jsonPath('$.errors[0].field', byEqualTo('message'))
-            jsonPath(
-                    '$.errors[0].message',
-                    byRegex(
-                            '''^(Otillåtna tecken.*|Endast bokstäver \\(A–Ö\\), siffror \\(0–9\\) och mellanslag tillåts)$'''
-                    )
-            )
+            // casa tanto "Otillåtna tecken ..." quanto "Endast bokstäver (A–Ö) ..."
+            jsonPath('$.errors[0].message',
+                    byRegex('(Otillåtna tecken.*)|(Endast bokstäver .* mellanslag.*)'))
         }
     }
 }

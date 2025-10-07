@@ -21,25 +21,18 @@ org.springframework.cloud.contract.spec.Contract.make {
     response {
         status 400
         headers {
-            // OBS: Ange exakt ProblemDetail-typ
             header('Content-Type', 'application/problem+json')
         }
         body(
                 status: 400,
-                title : 'Valideringsfel',
+                title: 'Valideringsfel',
                 errors: [
-                        [
-                                field  : 'message',
-                                // Exempeltext – det faktiska värdet kan variera mellan miljöer
-                                message: 'Meddelandet får inte vara tomt'
-                        ]
+                        [ field: 'message', message: 'Meddelandet får inte vara tomt' ]
                 ]
         )
-        // Tillåt variation i lokaliserad text men håll fältet korrekt
-        matchers {
+        bodyMatchers {
             jsonPath('$.errors[0].field', byEqualTo('message'))
-            jsonPath('$.errors[0].message',
-                    byRegex('^(Meddelandet får inte vara tomt|Otillåtna tecken.*)$'))
+            jsonPath('$.errors[0].message', byEqualTo('Meddelandet får inte vara tomt'))
         }
     }
 }
