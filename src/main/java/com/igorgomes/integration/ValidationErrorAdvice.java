@@ -36,7 +36,7 @@ public class ValidationErrorAdvice {
         problem.setDetail("En eller flera parametrar är ogiltiga.");
         problem.setProperty("path", request.getRequestURI());
 
-        // (SV) Extrahera endast sista noden i propertyPath (t.ex. "sendMessage.message" -> "message")
+        // Extrahera endast sista noden i propertyPath (t.ex. "sendMessage.message" -> "message")
         List<Map<String, String>> errors = ex.getConstraintViolations().stream()
                 .map(v -> {
                     String fullPath = v.getPropertyPath().toString();
@@ -52,7 +52,7 @@ public class ValidationErrorAdvice {
 
         problem.setProperty("errors", errors);
 
-        // (SV) Sätt explicit Content-Type för att undvika 406 (Not Acceptable)
+        // Sätt explicit Content-Type för att undvika 406 (Not Acceptable)
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .contentType(MediaType.APPLICATION_PROBLEM_JSON)
