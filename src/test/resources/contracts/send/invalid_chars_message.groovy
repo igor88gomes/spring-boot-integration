@@ -29,16 +29,20 @@ org.springframework.cloud.contract.spec.Contract.make {
                 status: 400,
                 title: 'Valideringsfel',
                 errors: [
-                        [ field: 'message',
-                          // Aceite as duas variantes comuns de texto em sueco via matcher abaixo
-                          message: 'Otillåtna tecken i \'message\'. Tillåtna: bokstäver, siffror, blanksteg samt - _ . : , ! ?' ]
+                        [
+                                field  : 'message',
+                                // Bastext (vi validerar varianten via regex i bodyMatchers nedan)
+                                message: "Otillåtna tecken i 'message'. Tillåtna: bokstäver, siffror, blanksteg samt - _ . : , ! ?"
+                        ]
                 ]
         )
         bodyMatchers {
-            jsonPath('$.errors[0].field', byEqualTo('message'))
-            // casa tanto "Otillåtna tecken ..." quanto "Endast bokstäver (A–Ö) ..."
+            jsonPath('$.errors[0].field', byEquality())
+            // Acceptera båda vanliga varianterna:
+            // 1) "Otillåtna tecken i 'message'..."
+            // 2) "Endast bokstäver (A–Ö), siffror (0–9) och mellanslag tillåts"
             jsonPath('$.errors[0].message',
-                    byRegex('(Otillåtna tecken.*)|(Endast bokstäver .* mellanslag.*)'))
+                    byRegex("(Otillåtna tecken.*)|(Endast bokstäver \\(A–Ö\\), siffror \\(0–9\\) och mellanslag tillåts)"))
         }
     }
 }

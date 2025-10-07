@@ -31,8 +31,8 @@ org.springframework.cloud.contract.spec.Contract.make {
                 ]
         )
         bodyMatchers {
-            jsonPath('$.errors[0].field', byEqualTo('message'))
-            jsonPath('$.errors[0].message', byEqualTo('Meddelandet får inte vara tomt'))
+            jsonPath('$.errors[0].field', byEquality())
+            jsonPath('$.errors[0].message', byEquality())
         }
     }
 }
