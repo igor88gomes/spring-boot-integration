@@ -1,5 +1,11 @@
 org.springframework.cloud.contract.spec.Contract.make {
+    /*
+     * Kontrakt: giltigt 'message' ska accepteras och ge 200 (OK).
+     * Säkerställer att valideringen passerar och att svaret returneras
+     * i klartextformat (text/plain), vilket är avsett för lyckade POST-anrop.
+     */
     description 'POST /api/send med giltigt message ⇒ 200 (text/plain)'
+
     request {
         method 'POST'
         url('/api/send') {
@@ -8,10 +14,12 @@ org.springframework.cloud.contract.spec.Contract.make {
             }
         }
     }
+
     response {
         status 200
         headers {
-            contentType(textPlain()) // <-- säkrar "Content-Type: text/plain"
+            contentType(textPlain()) // Säkrar att svaret är text/plain (lyckad sändning)
         }
+        body($(consumer(regex('.*')), producer('Meddelande skickat till kön: hello')))
     }
 }
