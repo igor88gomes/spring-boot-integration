@@ -16,7 +16,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.hamcrest.Matchers.*;
 
 /**
- * (SV) MVC-slice tester som verifierar storlek- och regexvalidering på /api/send.
+ *   MVC-slice tester som verifierar storlek- och regexvalidering på /api/send.
  * - Giltiga tecken: bokstäver/siffror/blanksteg och - _ . : , ! ?
  * - Max längd: 256 tecken
  * - Ogiltiga exempel: "<script>"
@@ -31,7 +31,7 @@ class MessageControllerValidationTest {
     @Autowired
     private MockMvc mvc;
 
-    // (SV) Mocka beroenden så att endast controller-lagret testas
+    // Mocka beroenden så att endast controller-lagret testas
     @MockitoBean private MessageProducer messageProducer;
     @MockitoBean private MessageRepository messageRepository;
 
@@ -91,11 +91,11 @@ class MessageControllerValidationTest {
 
     @Test
     void blank_returns400_withSwedishMessage_andDoesNotCallProducer() throws Exception {
-        // (SV) Tom/blank parameter ska ge 400 och ProblemDetail i JSON-format
+        // Tom/blank parameter ska ge 400 och ProblemDetail i JSON-format
         mvc.perform(
                         post("/api/send")
                                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                                .accept(MediaType.APPLICATION_PROBLEM_JSON)          // (SV) Begär ProblemDetail
+                                .accept(MediaType.APPLICATION_PROBLEM_JSON)          // Begär ProblemDetail
                                 .header("Accept-Language", "sv-SE")
                                 .param("message", " ")
                 )
