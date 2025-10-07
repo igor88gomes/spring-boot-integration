@@ -10,6 +10,8 @@ org.springframework.cloud.contract.spec.Contract.make {
         method 'POST'
         url('/api/send') {
             queryParameters {
+                // Exempelvärde för lyckad sändning.
+                // (Om du vill tillåta "vilket som helst icke-tomt" i request, kan du byta consumer('hello') till consumer(regex('.+')))
                 parameter 'message': value(consumer('hello'), producer('hello'))
             }
         }
@@ -20,6 +22,6 @@ org.springframework.cloud.contract.spec.Contract.make {
         headers {
             contentType(textPlain()) // Säkrar att svaret är text/plain (lyckad sändning)
         }
-        body($(consumer(regex('.*')), producer('Meddelande skickat till kön: hello')))
+        body('Meddelande skickat till kön: hello')
     }
 }
