@@ -15,24 +15,23 @@ org.springframework.cloud.contract.spec.Contract.make {
                 parameter 'message': value(consumer('<script>'), producer('<script>'))
             }
         }
+        headers {
+            header 'Accept-Language': value(consumer('sv-SE'), producer('sv-SE'))
+        }
     }
 
     response {
         status 400
         headers {
-            // Byt från generisk JSON till exakt ProblemDetail-typ
             header('Content-Type', 'application/problem+json')
         }
         body(
                 status: 400,
-                title: value(producer('Valideringsfel'), consumer('Valideringsfel')),
+                title: 'Valideringsfel',
                 errors: [
                         [
-                                field: value(producer('message'), consumer('message')),
-                                message: value(
-                                        producer('Endast bokstäver (A–Ö), siffror (0–9) och mellanslag tillåts'),
-                                        consumer('Endast bokstäver (A–Ö), siffror (0–9) och mellanslag tillåts')
-                                )
+                                field : 'message',
+                                message: 'Endast bokstäver (A–Ö), siffror (0–9) och mellanslag tillåts'
                         ]
                 ]
         )

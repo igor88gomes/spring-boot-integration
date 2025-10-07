@@ -3,7 +3,6 @@ package com.igorgomes.integration;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.context.MessageSource;
-import org.springframework.context.NoSuchMessageException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
@@ -13,11 +12,12 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.servlet.support.RequestContextUtils;
 
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -28,6 +28,8 @@ import java.util.stream.Collectors;
  */
 @RestControllerAdvice
 public class ValidationErrorAdvice {
+
+    private static final Pattern MESSAGE_TEMPLATE = Pattern.compile("^\\{(.+)}$");
 
     private final MessageSource messageSource;
 
@@ -47,7 +49,7 @@ public class ValidationErrorAdvice {
         problem.setDetail("En eller flera parametrar är ogiltiga.");
         problem.setProperty("path", request.getRequestURI());
 
-        Locale locale = RequestContextUtils.getLocale(request);
+        Locale locale = request.getLocale();
 
         // Extrahera endast sista noden i propertyPath (t.ex. "sendMessage.message" -> "message")
         List<Map<String, String>> errors = ex.getConstraintViolations().stream()
@@ -57,9 +59,9 @@ public class ValidationErrorAdvice {
                             ? fullPath.substring(fullPath.lastIndexOf('.') + 1)
                             : fullPath;
 
-                    // v.getMessage() kan vara interpolerad eller en mall som "{message.*}"
-                    String raw = v.getMessage();
-                    String resolved = resolveIfTemplate(raw, locale);
+                    // Kan komma som template "{message.required}" – resolva via MessageSource
+                    String rawMessage = v.getMessage();
+                    String resolved = resolveIfTemplate(rawMessage, locale);
 
                     return Map.of(
                             "field", fieldName,
@@ -88,12 +90,18 @@ public class ValidationErrorAdvice {
         problem.setDetail("En eller flera fält i begäran är ogiltiga.");
         problem.setProperty("path", request.getRequestURI());
 
-        Locale locale = RequestContextUtils.getLocale(request);
+        Locale locale = request.getLocale();
 
         List<Map<String, String>> errors = ex.getBindingResult().getFieldErrors().stream()
-                .map(err -> Map.of(
-                        "field", err.getField(),
-                        "message", resolveFieldErrorMessage(err, locale)))
+                .map(err -> {
+                    // defaultMessage kan vara redan interpolerad ELLER en template "{key}"
+                    String rawMessage = safeDefaultMessage(err);
+                    String resolved = resolveIfTemplate(rawMessage, locale);
+                    return Map.of(
+                            "field", err.getField(),
+                            "message", resolved
+                    );
+                })
                 .collect(Collectors.toList());
 
         problem.setProperty("errors", errors);
@@ -123,35 +131,26 @@ public class ValidationErrorAdvice {
                 .body(problem);
     }
 
-    //  Hjälpmetoder för att säkert lösa lokaliserade meddelanden ---
+    // Hjälpmetoder
 
-    private String resolveFieldErrorMessage(FieldError err, Locale locale) {
-        // Bean Validation brukar redan interpolera defaultMessage; om inte, försök via MessageSource.
-        String dm = err.getDefaultMessage();
-        if (dm != null && !dm.startsWith("{")) {
-            return dm;
+    /**
+     * Om meddelandet kommer i Bean Validation-templateformat "{nyckel}",
+     * slå upp i MessageSource med aktuell Locale. I annat fall returneras originaltexten.
+     */
+    private String resolveIfTemplate(String raw, Locale locale) {
+        if (raw == null) return "";
+        Matcher m = MESSAGE_TEMPLATE.matcher(raw.trim());
+        if (m.matches()) {
+            String key = m.group(1);
+            // Ingen args-array i dessa meddelanden – kan utökas vid behov
+            String resolved = messageSource.getMessage(key, null, raw, locale);
+            return resolved != null ? resolved : raw;
         }
-        try {
-            return messageSource.getMessage(err, locale);
-        } catch (NoSuchMessageException e) {
-            return fallbackFromTemplate(dm);
-        }
+        return raw;
     }
 
-    private String resolveIfTemplate(String msg, Locale locale) {
-        if (msg == null) return "Ogiltig parameter.";
-        if (!msg.startsWith("{")) return msg;
-
-        String key = msg.substring(1, msg.length() - 1); // "{message.required}" -> "message.required"
-        try {
-            return messageSource.getMessage(key, null, locale);
-        } catch (NoSuchMessageException e) {
-            return fallbackFromTemplate(msg);
-        }
-    }
-
-    private String fallbackFromTemplate(String templateOrNull) {
-        // En försiktig fallback om nyckeln saknas – returnera antingen råsträngen eller en neutral text.
-        return (templateOrNull != null) ? templateOrNull : "Ogiltig parameter.";
+    private String safeDefaultMessage(FieldError err) {
+        String msg = err.getDefaultMessage();
+        return msg != null ? msg : "";
     }
 }

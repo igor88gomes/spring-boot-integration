@@ -10,27 +10,27 @@ org.springframework.cloud.contract.spec.Contract.make {
         method 'POST'
         url('/api/send') {
             queryParameters {
-                parameter 'message': value(consumer('x' * 300), producer('x' * 300)) // 300 > 256
+                // 300 > 256
+                parameter 'message': value(consumer('x' * 300), producer('x' * 300))
             }
+        }
+        headers {
+            header 'Accept-Language': value(consumer('sv-SE'), producer('sv-SE'))
         }
     }
 
     response {
         status 400
         headers {
-            // Byt från generisk JSON till exakt ProblemDetail-typ
             header('Content-Type', 'application/problem+json')
         }
         body(
                 status: 400,
-                title : value(producer('Valideringsfel'), consumer('Valideringsfel')),
+                title : 'Valideringsfel',
                 errors: [
                         [
-                                field  : value(producer('message'), consumer('message')),
-                                message: value(
-                                        producer("Parametern 'message' får vara högst 256 tecken."),
-                                        consumer("Parametern 'message' får vara högst 256 tecken.")
-                                )
+                                field  : 'message',
+                                message: "Parametern 'message' får vara högst 256 tecken."
                         ]
                 ]
         )
